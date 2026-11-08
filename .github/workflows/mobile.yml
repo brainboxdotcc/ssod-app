@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  VITE_GAME_WS_URL: ${{ vars.VITE_GAME_WS_URL }}
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -23,6 +26,16 @@ jobs:
           java-version: '21'
       # GitHub-hosted Ubuntu runners already include the Android SDK.
       # Gradle installs any additional platform/build-tools packages required.
+      - name: Validate WebSocket endpoint
+        run: |
+          if [ -z "$VITE_GAME_WS_URL" ]; then
+            echo "::error::Set the VITE_GAME_WS_URL repository variable in Settings > Secrets and variables > Actions > Variables"
+            exit 1
+          fi
+          case "$VITE_GAME_WS_URL" in
+            wss://*) ;;
+            *) echo "::error::VITE_GAME_WS_URL must begin with wss://"; exit 1 ;;
+          esac
       - name: Install and build webapp
         run: |
           npm install
@@ -70,6 +83,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate WebSocket endpoint
+        run: |
+          if [ -z "$VITE_GAME_WS_URL" ]; then
+            echo "::error::Set the VITE_GAME_WS_URL repository variable in Settings > Secrets and variables > Actions > Variables"
+            exit 1
+          fi
+          case "$VITE_GAME_WS_URL" in
+            wss://*) ;;
+            *) echo "::error::VITE_GAME_WS_URL must begin with wss://"; exit 1 ;;
+          esac
       - name: Install and build webapp
         run: |
           npm install
