@@ -46,15 +46,16 @@ jobs:
           npx cap sync android
       - name: Configure Gradle cache
         uses: gradle/actions/setup-gradle@v4
-      - name: Use minimal Gradle distribution and allow slower downloads
+      - name: Use direct Gradle distribution host and allow retries
         run: |
           python3 - <<'PYCODE'
           from pathlib import Path
           wrapper = Path('android/gradle/wrapper/gradle-wrapper.properties')
           content = wrapper.read_text()
           content = content.replace('-all.zip', '-bin.zip')
-          lines = [line for line in content.splitlines() if not line.startswith('networkTimeout=')]
-          lines.append('networkTimeout=60000')
+          content = content.replace('services.gradle.org/distributions/', 'downloads.gradle.org/distributions/')
+          lines = [line for line in content.splitlines() if not line.startswith(('networkTimeout=', 'retries=', 'retryBackOffMs='))]
+          lines.extend(['networkTimeout=60000', 'retries=2', 'retryBackOffMs=1000'])
           wrapper.write_text('\n'.join(lines) + '\n')
           PYCODE
       - name: Build unsigned release APK
