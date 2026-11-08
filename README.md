@@ -1,62 +1,93 @@
-# Seven Spells UI — standalone renderer prototype
+![Artwork](https://github.com/brainboxdotcc/ssod/blob/main/resource/app_encyclopaedia.jpg)
 
-A desktop-first, mobile-responsive React + TypeScript frontend. It accepts Discord-shaped message JSON and renders embeds, Markdown, fields, attachments, action rows, buttons, string selects, modal text inputs, and a useful subset of Components V2.
+# The Seven Spells Of Destruction
 
-## Run
+The Seven Spells Of Destruction is a multiplayer open world role playing game originally created in 1993. This repository contains the web and mobile application frontend for the game, built using React, Vite and Capacitor. The application communicates with the Seven Spells game server over WebSockets.
 
-Requires Node.js 20.19+ or 22.12+ and npm.
+The game is also available through Discord, using the [Seven Spells bot](https://github.com/brainboxdotcc/ssod).
 
-```sh
+This game has quite a long history.
+
+### Timeline of the game's development
+
+* **1993**: This game was created by me at age 13 as a 1480 paragraph novel, similar in inspiration to "[Fighting Fantasy](https://en.wikipedia.org/wiki/Fighting_Fantasy)" books by Steve Jackson and Ian Livingstone.
+* **1996**: The game book was typed up into [inter-word](https://en.wikipedia.org/wiki/Wordwise#InterWord) on BBC Master 128 Computer.
+* **2000**: The game book content was transcribed into Microsoft Word 98.
+* **2001**: Word 98 content converted to a web based game, completely single player. C++ backend.
+* **2003**: Multiplayer features added to the game. [ssod.org](https://ssod.org) domain name registered. Peak player count in 2005 was 1500 concurrent players.
+* **2014**: Start of development of a 3D single player Seven Spells game in Unreal Engine 4.
+* **2020**: Unreal Engine 4 game abandoned due to lack of resources to adapt the content to a fully open 3D world.
+* **2023**: New parser/engine created for the 2004 game content to run via Discord through a bot.
+* **2026**: Development of a standalone web and mobile frontend using React and Capacitor.
+
+## Software Dependencies
+
+* Node.js
+* npm
+* Android Studio and Android SDK (for Android builds)
+* Xcode on macOS (for iOS builds)
+
+## Configuring the application
+
+Create a `.env` file in the project root containing the WebSocket endpoint for the Seven Spells server:
+
+```env
+VITE_GAME_WS_URL=wss://ws.ssod.org/api/game
+```
+
+For local development, this can instead point to a locally running game server.
+
+## Starting the application
+
+Install dependencies:
+
+```bash
 npm install
+```
+
+Start the Vite development server:
+
+```bash
 npm run dev
 ```
 
-Open the address printed by Vite (usually http://localhost:5173). For a production build, run `npm run build`.
+## Building the application
 
-## What to test
+To build the production web frontend:
 
-Use the left navigation to switch between Port Obligan, Inventory, Quest Log, Component Playground and Components V2. Click buttons, select options and submit the modal. The mock transport in `src/mock.ts` returns a replacement message or modal response. Toggle the `<>` icon to inspect the current message JSON.
+```bash
+npm run build
+```
 
-## Integration boundary
+The generated files are placed in the `dist` directory and can be served by a standard web server.
 
-- `src/types.ts`: Discord-shaped JSON types (subset, not a full generated Discord API schema).
-- `src/mock.ts`: sample messages and a synchronous fake interaction responder.
-- `src/main.tsx`: renderer, interaction dispatch, modal and application shell.
-- `src/style.css`: styling and responsive behaviour.
+### Android
 
-Replace `simulate()` with an asynchronous call to Drogon. The server must derive the user ID from the authenticated session, never from a client-supplied ID. Keep response rendering separate from game state.
+```bash
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
 
-## Scope / limitations
+The debug APK is generated in `android/app/build/outputs/apk/debug/` and is automatically signed for testing.
 
-This is a prototype, not full Discord API conformance. It supports string selects, but not user/role/channel selects or Discord's entire Components V2 catalogue. Markdown supports a safe subset; nested Markdown, mentions, spoilers and custom emoji assets need further work. The modal demo supports the older action-row-wrapped text-input shape. It does not implement Discord Gateway, authentication, networking, audio playback, persistence, or Capacitor packaging. The harbour scene and crest are original SVG placeholders, not game assets. The audio button is a placeholder.
+### iOS
 
-This version deliberately keeps only the current message, with no Discord channel history.
+On macOS with Xcode installed:
 
-## Standalone live gameplay
+```bash
+npm run build
+npx cap sync ios
+npx cap open ios
+```
 
-Set `VITE_GAME_WS_URL=ws://localhost:8080/api/game` in `.env.local` for local development, or use `wss://your-host/api/game` behind TLS in production. Rebuild/restart Vite after changing it.
+The application can then be built using Xcode.
 
-The browser generates a 256-bit installation token, stores it in localStorage, and authenticates on connection. The service dispatches `/start` after authentication. The client displays returned Discord message JSON, sends button/select/modal interactions and applies Discord callback message updates (type 7). Modal callbacks (type 9) open the existing modal renderer. When a live URL is configured the mock navigation and simulator are disabled; without one, the original demo remains available.
+## GitHub Actions
 
-The standalone server must send the Discord response envelope (`type` and `data`) or a complete message JSON. The client does not interpret game-specific custom IDs. Clearing browser storage loses the token and access to the standalone identity. No automatic reconnection is implemented.
-\n## v8\nMulti-select controls now use Select2-style selected pills, click-to-toggle checkboxes, count and a Confirm action. No Ctrl/Shift selection needed.\n
-## v9
-Fix Discord type 18 modal labels containing a singular `component` text input.
+GitHub Actions automatically builds the Android and iOS applications.
 
-## v10
-Submit Components V2 modal label (type 18) wrappers with nested text-input values, preserving legacy action-row text inputs.
+The Android workflow produces a signed debug APK suitable for sideloading and an unsigned release APK. The iOS workflow produces an unsigned simulator build.
 
-## v11
-Render fenced `ansi` code blocks with ANSI SGR colours and styling, including 8/16/256/true-colour codes. Other fenced code blocks remain plain. Emoji CDN support is deliberately deferred.
-
-## v12
-Render Discord double-underscore underline markup in rich text.
-\n## v13\nNested Discord inline formatting is now parsed recursively, including `__**Chat**__`.\n
-## v14
-Corrects over-escaped regex and newline handling introduced in v13. Syntax checked with TypeScript transpilation.
-\n## v15\nApplication emoji names now resolve to PNG sprites on admin.ssod.org in buttons, select options, embeds, inline Markdown and ANSI text. Single selects use a custom menu to display image sprites. No Discord CDN requests.\n
-## v16
-Replace placeholder crest and favicon with official SSOD icon.
-\n## v17\nLive sidebar navigation for /start, /profile and /lore. Every click sends a fresh slash command; no response caching.\n
-## v23
-Expanded Discord Markdown: bulleted and numbered lists, italic underscores, nested emphasis, links and autolinks, escaped formatting, quotes, spoilers and subtext.
+Set the repository variable `VITE_GAME_WS_URL` to the WebSocket endpoint to be embedded in the application during the build.
