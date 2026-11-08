@@ -5,35 +5,23 @@ import { ComponentView } from './ComponentView';
 import { rich } from '../rendering/rich';
 
 export function MessageView({ message, dispatch }: { message: Message; dispatch: (i: Interaction) => void }) {
-  return <div className="message">
-    {message.content && (
-      <div className="message-content">
-        {rich(message.content)}
-      </div>
-    )}
+	return (
+		<div className="message">
+			{message.content && <div className="message-content">{rich(message.content)}</div>}
 
-    {message.embeds?.map((e, i) => (
-      <EmbedView key={i} embed={e}/>
-    ))}
+			{message.embeds?.map((e, i) => (
+				<EmbedView key={i} embed={e} />
+			))}
 
-    {message.attachments?.map(a => (
-      <a
-        className="attachment"
-        href={a.url}
-        key={a.id}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        📎 {a.filename}
-      </a>
-    ))}
+			{message.attachments?.map((a) => (
+				<a className="attachment" href={a.url} key={a.id} target="_blank" rel="noopener noreferrer">
+					📎 {a.filename}
+				</a>
+			))}
 
-    {message.components?.map((c, i) => (
-      <ComponentView
-        key={`${message.id || 'message'}-${i}`}
-        component={c}
-        dispatch={dispatch}
-      />
-    ))}
-  </div>;
+			{message.components?.map((c, i) => (
+				<ComponentView key={`${message.id || 'message'}-${i}`} component={c} dispatch={dispatch} />
+			))}
+		</div>
+	);
 }
