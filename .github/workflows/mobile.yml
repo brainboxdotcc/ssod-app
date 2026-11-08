@@ -80,7 +80,7 @@ jobs:
           npx cap sync ios
       - name: Build unsigned iOS app for simulator
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/ssod-ios" CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/ssod-ios" CODE_SIGNING_ALLOWED=NO build
           cd "$RUNNER_TEMP/ssod-ios/Build/Products/Release-iphonesimulator"
           zip -qr "$GITHUB_WORKSPACE/seven-spells-ios-simulator-unsigned.zip" App.app
       - name: Upload unsigned simulator app
