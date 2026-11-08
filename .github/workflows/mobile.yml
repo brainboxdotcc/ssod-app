@@ -21,7 +21,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      # GitHub-hosted Ubuntu runners already include the Android SDK.
+      # Gradle installs any additional platform/build-tools packages required.
       - name: Install and build webapp
         run: |
           npm install
