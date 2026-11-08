@@ -1,16 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, Compass, FlaskConical, Menu, Volume2, VolumeX, ScrollText, Code2 } from 'lucide-react';
-import type { Interaction, Message, Modal, Response } from './types';
-import { samples, simulate, type Screen } from './mock';
+import { useEffect, useRef, useState } from 'react';
+import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2 } from 'lucide-react';
+import type { Interaction, Message, Modal } from './types';
 import { connectStandalone } from './standalone';
 import { MessageView } from './components/MessageView';
 import { ModalView } from './components/ModalView';
 
 export function App() {
-  const live = Boolean(import.meta.env.VITE_GAME_WS_URL);
-  const [connectionStatus, setConnectionStatus] = useState(live ? 'Connecting' : 'Mock transport · Offline');
-  const [screen, setScreen] = useState<Screen>('location');
-  const [message, setMessage] = useState<Message>(live ? {} : samples.location);
+  const [connectionStatus, setConnectionStatus] = useState('Connecting');
+  const [message, setMessage] = useState<Message>({});
   const [modal, setModal] = useState<Modal | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [showJson, setShowJson] = useState(false);
@@ -46,7 +43,6 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!live) return;
     const connection = connectStandalone(import.meta.env.VITE_GAME_WS_URL, status => {
       setConnectionStatus(status);
       if (status !== 'Connected' && pendingRef.current) {
@@ -94,10 +90,10 @@ export function App() {
       pendingRef.current = false;
       connection.close();
     };
-  }, [live]);
+  }, []);
 
   const navigate = (command: string) => {
-    if (!live || !beginInteraction()) return;
+    if (!beginInteraction()) return;
     setActiveCommand(command);
     setModal(null);
     setMenu(false);
@@ -105,63 +101,160 @@ export function App() {
     socket.current?.send({ type: 2, data: { type: 1, name: command } });
   };
 
-  const go = (next: Screen) => {
-    if (live) return;
-    setScreen(next);
-    setMessage(samples[next]);
-    setModal(null);
-    setMenu(false);
-    setLog(l => [`Loaded ${next} sample`, ...l].slice(0, 8));
+  const dispatch = (interaction: Interaction) => {
+    if (!beginInteraction()) {
+		return;
+	}
+    setLog(l => [`${interaction.custom_id}${interaction.values ? ` → ${interaction.values.join(', ')}` : ''}`, ...l].slice(0, 8));
+    if (interaction.fields) {
+      const components = modal?.components.map(c => {
+        if (c.type === 18 && c.component) {
+          return { type: 18, component: { type: c.component.type, custom_id: c.component.custom_id,
+            value: interaction.fields?.[c.component.custom_id || ''] || '' } };
+        }
+        if (c.type === 1) {
+          return { type: 1, components: (c.components || []).filter(child => child.type === 4).map(child =>
+            ({ type: 4, custom_id: child.custom_id, value: interaction.fields?.[child.custom_id || ''] || '' })) };
+        }
+        return { type: c.type, custom_id: c.custom_id, value: interaction.fields?.[c.custom_id || ''] || '' };
+      }) || [];
+      socket.current?.send({ type: 5, data: { custom_id: interaction.custom_id, components } });
+      setModal(null);
+    } else {
+      socket.current?.send({ type: 3, message_id: messageId.current,
+        data: { component_type: interaction.values ? 3 : 2, custom_id: interaction.custom_id,
+          ...(interaction.values ? { values: interaction.values } : {}) } });
+    }
   };
 
-  const dispatch = (interaction: Interaction) => {
-    if (live && !beginInteraction()) return;
-    setLog(l => [`${interaction.custom_id}${interaction.values ? ` → ${interaction.values.join(', ')}` : ''}`, ...l].slice(0, 8));
-    if (live) {
-      if (interaction.fields) {
-        const components = modal?.components.map(c => {
-          if (c.type === 18 && c.component) {
-            return { type: 18, component: { type: c.component.type, custom_id: c.component.custom_id,
-              value: interaction.fields?.[c.component.custom_id || ''] || '' } };
-          }
-          if (c.type === 1) {
-            return { type: 1, components: (c.components || []).filter(child => child.type === 4).map(child =>
-              ({ type: 4, custom_id: child.custom_id, value: interaction.fields?.[child.custom_id || ''] || '' })) };
-          }
-          return { type: c.type, custom_id: c.custom_id, value: interaction.fields?.[c.custom_id || ''] || '' };
-        }) || [];
-        socket.current?.send({ type: 5, data: { custom_id: interaction.custom_id, components } });
-        setModal(null);
-      } else {
-        socket.current?.send({ type: 3, message_id: messageId.current,
-          data: { component_type: interaction.values ? 3 : 2, custom_id: interaction.custom_id,
-            ...(interaction.values ? { values: interaction.values } : {}) } });
-      }
-      return;
-    }
-    if (interaction.custom_id === 'showcase') { go('showcase'); return; }
-    const response: Response = simulate(interaction, screen);
-    if (response.type === 'modal') setModal(response.modal);
-    else { setMessage(response.message); setModal(null); }
-  };
 
   return <div className="app">
     <aside className={`sidebar ${menu ? 'open' : ''}`}>
-      <div className="brand"><img src="https://admin.ssod.org/img/cropped-ssod-new-192x192.png" alt="Seven Spells crest"/><div><strong>SEVEN SPELLS</strong><span>OF DESTRUCTION</span></div></div>
-      {live && <div className="sidebar-label">GAME</div>}
-      {live && ([['start', Compass, 'Adventure'], ['profile', ScrollText, 'Profile'], ['lore', BookOpen, 'Lore']] as const).map(([command, Icon, label]) =>
-        <button key={command} className={`nav-item ${activeCommand === command ? 'active' : ''}`} disabled={connectionStatus !== 'Connected' || interactionPending} onClick={() => navigate(command)}><Icon size={17}/>{label}</button>)}
-      {!live && <div className="sidebar-label">DEMO SCREENS</div>}
-      {!live && ([['location', Compass, 'Port Obligan'], ['inventory', FlaskConical, 'Inventory'], ['quests', ScrollText, 'Quest log'], ['showcase', BookOpen, 'Component playground'], ['v2', Code2, 'Components V2']] as const).map(([key, Icon, label]) => <button key={key} className={`nav-item ${screen === key ? 'active' : ''}`} onClick={() => go(key)}><Icon size={17}/>{label}</button>)}
-      <div className="sidebar-bottom"><div className="online-dot"/> {connectionStatus}<br/><span>{import.meta.env.VITE_GAME_WS_URL ? "Live gameplay" : "API integration not connected"}</span></div>
+      <div className="brand">
+        <img
+          src="/logo.png"
+          alt="Seven Spells Of Destruction"
+        />
+        <div>
+          <strong>SEVEN SPELLS</strong>
+          <span>OF DESTRUCTION</span>
+        </div>
+      </div>
+      <div className="sidebar-label">GAME</div>
+      {([
+        ['start', Compass, 'Adventure'],
+        ['profile', ScrollText, 'Profile'],
+        ['lore', BookOpen, 'Lore']
+      ] as const).map(([command, Icon, label]) =>
+        <button
+          key={command}
+          className={`nav-item ${activeCommand === command ? 'active' : ''}`}
+          disabled={connectionStatus !== 'Connected' || interactionPending}
+          onClick={() => navigate(command)}
+        >
+          <Icon size={17}/>
+          {label}
+        </button>
+      )}
+      <div className="sidebar-bottom">
+        <div className="online-dot"/>
+        {connectionStatus}
+        <br/>
+        <span>Live gameplay</span>
+      </div>
     </aside>
-    {menu && <div className="mobile-shade" onClick={() => setMenu(false)}/>}
-    <main className="main"><header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMenu(true)} aria-label="Open menu"><Menu size={22}/></button><div className="top-title"><span className="eyebrow">THE SEVEN SPELLS OF DESTRUCTION</span><strong>{live ? ({ start: 'Adventure', profile: 'Profile', lore: 'Lore' } as Record<string, string>)[activeCommand] || 'Seven Spells' : screen === 'location' ? 'Port Obligan' : screen === 'quests' ? 'Quest Log' : screen === 'inventory' ? 'Inventory' : 'Renderer test'}</strong></div><div className="top-actions"><button className="icon-button" onClick={() => setShowJson(v => !v)} title="Toggle payload inspector"><Code2 size={19}/></button><button className="icon-button" onClick={() => setMuted(v => !v)} title="Audio placeholder (not implemented)">{muted ? <VolumeX size={19}/> : <Volume2 size={19}/>}</button></div></header>
-      {live && interactionPending && <div role="status">Waiting for Seven Spells…</div>}
-      {live && interactionError && <div role="alert">{interactionError}</div>}
-      <div className="content"><div className="game-layout"><section className="game-panel"><fieldset disabled={live && (interactionPending || connectionStatus !== 'Connected')} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}><MessageView message={message} dispatch={dispatch}/></fieldset></section>
-      {showJson && <aside className="inspector"><div className="inspector-title">Last received WebSocket payload</div><pre>{JSON.stringify(lastResponse, null, 2)}</pre><div className="inspector-title">Current message JSON</div><pre>{JSON.stringify(message, null, 2)}</pre><div className="inspector-title">Interaction log</div>{log.map((line, i) => <div className="log-line" key={i}>{line}</div>)}</aside>}</div></div>
-      <footer className="footer">Seven Spells of Destruction · v0.1.0</footer>
-    </main>{modal && <ModalView key={modal.custom_id} modal={modal} close={() => setModal(null)} submit={dispatch}/>}</div>;
-}
 
+    {menu && (
+      <div
+        className="mobile-shade"
+        onClick={() => setMenu(false)}
+      />
+    )}
+
+    <main className="main">
+      <header className="topbar">
+        <button
+          className="mobile-menu icon-button"
+          onClick={() => setMenu(true)}
+          aria-label="Open menu"
+        >
+          <Menu size={22}/>
+        </button>
+        <div className="top-title">
+          <span className="eyebrow">THE SEVEN SPELLS OF DESTRUCTION</span>
+          <strong>
+            {({
+              start: 'Adventure',
+              profile: 'Profile',
+              lore: 'Lore'
+            } as Record<string, string>)[activeCommand] || 'Seven Spells'}
+          </strong>
+        </div>
+        <div className="top-actions">
+          <button
+            className="icon-button"
+            onClick={() => setShowJson(v => !v)}
+            title="Toggle payload inspector"
+          >
+            <Code2 size={19}/>
+          </button>
+          <button
+            className="icon-button"
+            onClick={() => setMuted(v => !v)}
+            title="Audio placeholder (not implemented)"
+          >
+            {muted ? <VolumeX size={19}/> : <Volume2 size={19}/>}
+          </button>
+        </div>
+      </header>
+
+      {interactionPending && (
+        <div role="status">Waiting for Seven Spells…</div>
+      )}
+      {interactionError && (
+        <div role="alert">{interactionError}</div>
+      )}
+
+      <div className="content">
+        <div className="game-layout">
+          <section className="game-panel">
+            <fieldset
+              disabled={interactionPending || connectionStatus !== 'Connected'}
+              style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+            >
+              <MessageView message={message} dispatch={dispatch}/>
+            </fieldset>
+          </section>
+
+          {showJson && (
+            <aside className="inspector">
+              <div className="inspector-title">Last received WebSocket payload</div>
+              <pre>{JSON.stringify(lastResponse, null, 2)}</pre>
+              <div className="inspector-title">Current message JSON</div>
+              <pre>{JSON.stringify(message, null, 2)}</pre>
+              <div className="inspector-title">Interaction log</div>
+              {log.map((line, i) => (
+                <div className="log-line" key={i}>
+                  {line}
+                </div>
+              ))}
+            </aside>
+          )}
+        </div>
+      </div>
+
+      <footer className="footer">
+        Seven Spells of Destruction · v0.1.0
+      </footer>
+    </main>
+
+    {modal && (
+      <ModalView
+        key={modal.custom_id}
+        modal={modal}
+        close={() => setModal(null)}
+        submit={dispatch}
+      />
+    )}
+  </div>;
+}
