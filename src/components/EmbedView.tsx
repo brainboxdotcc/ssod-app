@@ -2,6 +2,7 @@ import React from 'react';
 import type { Embed } from '../types';
 import { spriteText } from '../rendering/sprites';
 import { rich } from '../rendering/rich';
+import { ZoomableImage } from './ZoomableImage';
 
 export function EmbedView({ embed }: { embed: Embed }) {
 	return (
@@ -18,7 +19,9 @@ export function EmbedView({ embed }: { embed: Embed }) {
 				</div>
 			)}
 
-			{embed.thumbnail && <img className="thumbnail" src={embed.thumbnail.url} alt="Embed thumbnail" />}
+			{embed.thumbnail && (
+				<ZoomableImage className="thumbnail" src={embed.thumbnail.url} alt="Embed thumbnail" />
+			)}
 
 			{embed.title && (
 				<h2>
@@ -45,7 +48,9 @@ export function EmbedView({ embed }: { embed: Embed }) {
 				</div>
 			)}
 
-			{embed.image && <img className="embed-image" src={embed.image.url} alt={embed.title || 'Embed illustration'} />}
+			{embed.image && (
+				<ZoomableImage className="embed-image" src={embed.image.url} alt={embed.title || 'Embed illustration'} />
+			)}
 		</article>
 	);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2 } from 'lucide-react';
+import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map } from 'lucide-react';
 import type { Interaction, Message, Modal } from './types';
 import { connectStandalone } from './standalone';
 import { MessageView } from './components/MessageView';
@@ -172,7 +172,9 @@ export function App() {
 					[
 						['start', Compass, 'Adventure'],
 						['profile', ScrollText, 'Profile'],
+						['map', Map, 'Map'],
 						['lore', BookOpen, 'Lore'],
+						['achievements', Trophy, 'Achievements'],
 					] as const
 				).map(([command, Icon, label]) => (
 					<button
