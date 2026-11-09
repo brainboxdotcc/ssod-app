@@ -47,7 +47,7 @@ function richInline(text: string): React.ReactNode[] {
 		const code = /^(`+)([\s\S]*?)\1(?!`)/.exec(rest);
 		if (code && !code[2].includes('\n')) {
 			flush();
-			append(<code>{code[2]}</code>);
+			append(code[2] === '/start' ? 'start a new character' : <code>{code[2]}</code>);
 			cursor += code[0].length;
 			continue;
 		}

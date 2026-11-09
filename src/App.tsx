@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, X } from 'lucide-react';
+import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, X, Trash2, ShieldCheck, FileText } from 'lucide-react';
 import type { Interaction, Message, Modal } from './types';
 import { connectStandalone, restoreInstallationToken } from './standalone';
 import { MessageView } from './components/MessageView';
@@ -13,6 +13,8 @@ export function App() {
 	const [modal, setModal] = useState<Modal | null>(null);
 	const [log, setLog] = useState<string[]>([]);
 	const [showJson, setShowJson] = useState(false);
+	const [developerUnlocked, setDeveloperUnlocked] = useState(false);
+	const developerClicks = useRef(0);
 	const [lastResponse, setLastResponse] = useState<unknown>(null);
 	const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 	const [currentUsername, setCurrentUsername] = useState<string | null>(null);
@@ -211,7 +213,11 @@ export function App() {
 	return (
 		<div className="app">
 			<aside className={`sidebar ${menu ? 'open' : ''}`}>
-				<div className="brand">
+				<div className="brand" onClick={() => {
+					if (!developerUnlocked && ++developerClicks.current >= 5) {
+						setDeveloperUnlocked(true);
+					}
+				}}>
 					<img src="/logo.png" alt="Seven Spells Of Destruction" />
 					<div>
 						<strong>SEVEN SPELLS</strong>
@@ -242,6 +248,21 @@ export function App() {
 				<button className="nav-item" onClick={() => { setAccountOpen(true); setMenu(false); }}>
 					<KeyRound size={17} /> Account recovery
 				</button>
+				{currentUsername && (
+					<button
+						className="nav-item"
+						disabled={connectionStatus !== 'Connected' || interactionPending}
+						onClick={() => navigate('reset')}
+					>
+						<Trash2 size={17} /> Delete Account
+					</button>
+				)}
+				<button className="nav-item" onClick={() => window.open('https://www.ssod.org/privacy-policy', '_blank', 'noopener,noreferrer')}>
+					<ShieldCheck size={17} /> Privacy Policy
+				</button>
+				<button className="nav-item" onClick={() => window.open('https://www.ssod.org/terms-of-service', '_blank', 'noopener,noreferrer')}>
+					<FileText size={17} /> Terms of Service
+				</button>				
 				<div className="sidebar-bottom">
 					<div className={`online-dot ${connectionStatus === 'Connected' ? '' : 'offline'}`} />
 					{connectionStatus}
@@ -270,9 +291,11 @@ export function App() {
 						</strong>
 					</div>
 					<div className="top-actions">
-						<button className="icon-button" onClick={() => setShowJson((v) => !v)} title="Toggle payload inspector">
-							<Code2 size={19} />
-						</button>
+						{developerUnlocked && (
+							<button className="icon-button" onClick={() => setShowJson((v) => !v)} title="Toggle payload inspector">
+								<Code2 size={19} />
+							</button>
+						)}
 						<button
 							className="icon-button"
 							onClick={() => setMuted((v) => !v)}
