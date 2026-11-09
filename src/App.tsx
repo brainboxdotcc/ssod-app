@@ -14,12 +14,15 @@ export function App() {
 	const [log, setLog] = useState<string[]>([]);
 	const [showJson, setShowJson] = useState(false);
 	const [lastResponse, setLastResponse] = useState<unknown>(null);
+	const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+	const [currentUsername, setCurrentUsername] = useState<string | null>(null);
 	const [muted, setMuted] = useState(true);
 	const [menu, setMenu] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
 	const [activeCommand, setActiveCommand] = useState('start');
 	const socket = useRef<ReturnType<typeof connectStandalone> | null>(null);
 	const messageId = useRef<string | undefined>(undefined);
+	const currentUserIdRef = useRef<number | null>(null);
 
 	const [interactionPending, setInteractionPending] = useState(false);
 	const [interactionError, setInteractionError] = useState('');
@@ -60,6 +63,16 @@ export function App() {
 				setLastResponse(response);
 				if (!response || typeof response !== 'object') return;
 				const packet = response as Record<string, unknown>;
+				if (typeof packet.ssod_user_id === 'number') {
+					if (currentUserIdRef.current !== packet.ssod_user_id) {
+						setCurrentUsername(null);
+						currentUserIdRef.current = packet.ssod_user_id;
+					}
+					setCurrentUserId(packet.ssod_user_id);
+				}
+				if (typeof packet.ssod_username === 'string') {
+					setCurrentUsername(packet.ssod_username);
+				}
 				const isObject = (value: unknown): value is Record<string, unknown> =>
 					typeof value === 'object' && value !== null && !Array.isArray(value);
 				const isMessage = (value: Record<string, unknown>) =>
@@ -116,6 +129,9 @@ export function App() {
 		setMessage({});
 		setModal(null);
 		setLastResponse(null);
+		setCurrentUserId(null);
+		currentUserIdRef.current = null;
+		setCurrentUsername(null);
 		setLog([]);
 		messageId.current = undefined;
 		setActiveCommand('start');
@@ -230,7 +246,7 @@ export function App() {
 					<div className={`online-dot ${connectionStatus === 'Connected' ? '' : 'offline'}`} />
 					{connectionStatus}
 					<br />
-					<span>Live gameplay</span>
+					<span>{currentUsername ? `Connected as: ${currentUsername}` : currentUserId !== null ? `Account ID: ${currentUserId}` : 'Character not identified'}</span>
 				</div>
 			</aside>
 
@@ -287,7 +303,7 @@ export function App() {
 								disabled={interactionPending || connectionStatus !== 'Connected'}
 								style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
 							>
-								<MessageView message={message} dispatch={dispatch} chat={activeCommand === 'start' ? { onProfile: openChatProfile, response: lastResponse } : undefined} />
+								<MessageView message={message} dispatch={dispatch} chat={activeCommand === 'start' ? { onProfile: openChatProfile, response: lastResponse, currentUsername } : undefined} />
 							</fieldset>
 						</section>
 

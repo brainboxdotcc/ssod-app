@@ -263,7 +263,7 @@ function richLines(text: string): React.ReactNode[] {
 	return blocks;
 }
 
-export function rich(text: string, chat?: { onProfile: (username: string) => void; response: unknown }): React.ReactNode[] {
+export function rich(text: string, chat?: { onProfile: (username: string) => void; response: unknown; currentUsername: string | null }): React.ReactNode[] {
 	const blocks: React.ReactNode[] = [];
 	const fences = /```([^\n`]*)\n([\s\S]*?)```/g;
 	let cursor = 0;

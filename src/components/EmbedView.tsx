@@ -4,7 +4,7 @@ import { spriteText } from '../rendering/sprites';
 import { rich } from '../rendering/rich';
 import { ZoomableImage } from './ZoomableImage';
 
-export function EmbedView({ embed, chat }: { embed: Embed; chat?: { onProfile: (username: string) => void; response: unknown } }) {
+export function EmbedView({ embed, chat }: { embed: Embed; chat?: { onProfile: (username: string) => void; response: unknown; currentUsername: string | null } }) {
 	return (
 		<article
 			className="embed"

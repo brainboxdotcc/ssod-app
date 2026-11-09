@@ -18,14 +18,17 @@ function chatUsername(line: string): string | null {
 	return match ? match[1].replace(/^[<\s]+|[>\s]+$/g, '') : null;
 }
 
-export function ChatBlock({ text, onProfile, response }: {
+export function ChatBlock({ text, onProfile, response, currentUsername }: {
 	text: string;
 	onProfile: (username: string) => void;
 	response: unknown;
+	currentUsername: string | null;
 }) {
 	const [blocked, setBlocked] = useState(blockedUsers);
 	const [selected, setSelected] = useState<{ username: string; line: string } | null>(null);
 	const [reportStatus, setReportStatus] = useState('');
+	const isOwnMessage = selected !== null && currentUsername !== null &&
+		selected.username.trim().toLocaleLowerCase() === currentUsername.trim().toLocaleLowerCase();
 
 	const block = (username: string) => {
 		const next = [...new Set([...blocked, username])];
@@ -35,7 +38,7 @@ export function ChatBlock({ text, onProfile, response }: {
 	};
 
 	const report = async () => {
-		if (!selected) return;
+		if (!selected || isOwnMessage) return;
 		setReportStatus('Sending report…');
 		try {
 			const result = await fetch('https://admin.ssod.org/api/chat-reporting', {
@@ -69,8 +72,10 @@ export function ChatBlock({ text, onProfile, response }: {
 		{selected && <div className="chat-user-menu" role="group" aria-label={`Actions for ${selected.username}`}>
 			<strong>{selected.username}</strong>
 			<button type="button" onClick={() => { onProfile(selected.username); setSelected(null); }}>Profile</button>
-			<button type="button" onClick={() => block(selected.username)}>Block</button>
-			<button type="button" onClick={report} className="chat-menu-report">Report message</button>
+			<button type="button" onClick={() => block(selected.username)} disabled={isOwnMessage}>Block</button>
+			<button type="button" onClick={report} disabled={isOwnMessage} className="chat-menu-report">Report message</button>
+			{isOwnMessage && <div className="chat-report-notice">You cannot report yourself</div>}
+			{reportStatus && <div className="chat-report-status" role="status">{reportStatus}</div>}
 			<button type="button" className="chat-menu-close" aria-label="Close menu" onClick={() => setSelected(null)}>×</button>
 		</div>}
 		{reportStatus && <div role="status">{reportStatus}</div>}

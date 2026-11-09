@@ -4,7 +4,7 @@ import { EmbedView } from './EmbedView';
 import { ComponentView } from './ComponentView';
 import { rich } from '../rendering/rich';
 
-export function MessageView({ message, dispatch, chat }: { message: Message; dispatch: (i: Interaction) => void; chat?: { onProfile: (username: string) => void; response: unknown } }) {
+export function MessageView({ message, dispatch, chat }: { message: Message; dispatch: (i: Interaction) => void; chat?: { onProfile: (username: string) => void; response: unknown; currentUsername: string | null } }) {
 	return (
 		<div className="message">
 			{message.content && <div className="message-content">{rich(message.content)}</div>}

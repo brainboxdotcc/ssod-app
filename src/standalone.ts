@@ -115,10 +115,11 @@ export function connectStandalone(
 
 	const scheduleRetry = () => {
 		if (stopped || rejected) return;
-		const delay = Math.min(1000 * 2 ** Math.min(attempts, 5), 30000);
+		const delay = Math.min(2000 * 2 ** Math.min(attempts, 4), 30000);
+		const jitter = delay * (0.8 + Math.random() * 0.4);
 		attempts++;
 		onStatus('Reconnecting');
-		retryTimer = setTimeout(connect, delay);
+		retryTimer = setTimeout(connect, jitter);
 	};
 
 	connect();
