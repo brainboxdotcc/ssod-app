@@ -57,6 +57,24 @@ jobs:
           lines.extend(['networkTimeout=60000', 'retries=2', 'retryBackOffMs=1000'])
           wrapper.write_text('\n'.join(lines) + '\n')
           PYCODE
+      - name: Cache Android debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+      - name: Generate debug keystore if missing
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey \
+              -storepass android \
+              -keypass android \
+              -keyalg RSA -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
       - name: Build self-signed debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
