@@ -1,6 +1,7 @@
 import React from 'react';
 import { spriteText } from './sprites';
 import { AnsiBlock } from './ansi';
+import { ZoomableImage } from '../components/ZoomableImage';
 
 function richInline(text: string): React.ReactNode[] {
 	const output: React.ReactNode[] = [];
@@ -53,15 +54,23 @@ function richInline(text: string): React.ReactNode[] {
 		const link = /^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/.exec(rest);
 		if (link) {
 			flush();
+
+			const imageUrl = /\.(?:png|jpe?g|gif|webp|avif)(?:[?#]|$)/i.test(link[2]);
+
 			append(
-				<a href={link[2]} target="_blank" rel="noopener noreferrer">
-					{richInline(link[1])}
-				</a>
+				imageUrl ? (
+					<ZoomableImage className="inline-image" src={link[2]} alt={link[1]} />
+				) : (
+					<a href={link[2]} target="_blank" rel="noopener noreferrer">
+						{richInline(link[1])}
+					</a>
+				)
 			);
+
 			cursor += link[0].length;
 			continue;
 		}
-
+		
 		const angle = /^<(https?:\/\/[^\s>]+)>/.exec(rest);
 		if (angle) {
 			flush();
