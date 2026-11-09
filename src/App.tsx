@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map } from 'lucide-react';
+import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, X } from 'lucide-react';
 import type { Interaction, Message, Modal } from './types';
-import { connectStandalone } from './standalone';
+import { connectStandalone, restoreInstallationToken } from './standalone';
 import { MessageView } from './components/MessageView';
 import { ModalView } from './components/ModalView';
+import { AccountRecovery } from './components/AccountRecovery';
 
 export function App() {
 	const [connectionStatus, setConnectionStatus] = useState('Connecting');
@@ -14,6 +15,7 @@ export function App() {
 	const [lastResponse, setLastResponse] = useState<unknown>(null);
 	const [muted, setMuted] = useState(true);
 	const [menu, setMenu] = useState(false);
+	const [accountOpen, setAccountOpen] = useState(false);
 	const [activeCommand, setActiveCommand] = useState('start');
 	const socket = useRef<ReturnType<typeof connectStandalone> | null>(null);
 	const messageId = useRef<string | undefined>(undefined);
@@ -47,6 +49,7 @@ export function App() {
 			import.meta.env.VITE_GAME_WS_URL,
 			(status) => {
 				setConnectionStatus(status);
+				if (status === 'Connected') setInteractionError('');
 				if (status !== 'Connected' && pendingRef.current) {
 					finishInteraction();
 					setInteractionError('Connection lost. Please try again when connected.');
@@ -98,6 +101,29 @@ export function App() {
 			connection.close();
 		};
 	}, []);
+
+
+	const restoreAccount = (code: string): boolean => {
+		try {
+			if (!restoreInstallationToken(code)) return false;
+		} catch {
+			return false;
+		}
+
+		finishInteraction();
+		setInteractionError('');
+		setMessage({});
+		setModal(null);
+		setLastResponse(null);
+		setLog([]);
+		messageId.current = undefined;
+		setActiveCommand('start');
+		setConnectionStatus('Connecting');
+		setAccountOpen(false);
+		socket.current?.retry();
+
+		return true;
+	};
 
 	const navigate = (command: string) => {
 		if (!beginInteraction()) return;
@@ -187,8 +213,12 @@ export function App() {
 						{label}
 					</button>
 				))}
+				<div className="sidebar-label">ACCOUNT</div>
+				<button className="nav-item" onClick={() => { setAccountOpen(true); setMenu(false); }}>
+					<KeyRound size={17} /> Account recovery
+				</button>
 				<div className="sidebar-bottom">
-					<div className="online-dot" />
+					<div className={`online-dot ${connectionStatus === 'Connected' ? '' : 'offline'}`} />
 					{connectionStatus}
 					<br />
 					<span>Live gameplay</span>
@@ -228,6 +258,16 @@ export function App() {
 					</div>
 				</header>
 
+				{connectionStatus !== 'Connected' && (
+					<div className="connection-banner" role="status">
+						<span>{connectionStatus === 'Reconnecting' ? 'Connection lost. Reconnecting automatically…' :
+							connectionStatus === 'Connecting' || connectionStatus === 'Authenticating' ?
+								'Connecting to Seven Spells…' :
+								connectionStatus.startsWith('Error:') ? connectionStatus :
+								'Not connected to Seven Spells.'}</span>
+						<button type="button" onClick={() => socket.current?.retry()}>Retry now</button>
+					</div>
+				)}
 				{interactionPending && <div role="status">Waiting for Seven Spells…</div>}
 				{interactionError && <div role="alert">{interactionError}</div>}
 
@@ -262,6 +302,12 @@ export function App() {
 				<footer className="footer">Seven Spells of Destruction · v0.1.0</footer>
 			</main>
 
+			{accountOpen && (
+			<AccountRecovery
+					onClose={() => setAccountOpen(false)}
+					onRestore={restoreAccount}
+				/>
+			)}
 			{modal && <ModalView key={modal.custom_id} modal={modal} close={() => setModal(null)} submit={dispatch} />}
 		</div>
 	);

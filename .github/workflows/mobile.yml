@@ -40,9 +40,8 @@ jobs:
         run: |
           npm install
           npm run build
-      - name: Generate and sync Android project
+      - name: Sync Android project
         run: |
-          npx cap add android
           npx cap sync android
       - name: Configure Gradle cache
         uses: gradle/actions/setup-gradle@v4
@@ -120,9 +119,8 @@ jobs:
         run: |
           npm install
           npm run build
-      - name: Generate and sync iOS project
+      - name: Sync iOS project
         run: |
-          npx cap add ios
           npx cap sync ios
       - name: Build unsigned iOS app for simulator
         run: |

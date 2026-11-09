@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Seven Spells of Destruction</string>
+    <string name="title_activity_main">Seven Spells of Destruction</string>
+    <string name="package_name">org.ssod.sevenspells</string>
+    <string name="custom_url_scheme">org.ssod.sevenspells</string>
+</resources>

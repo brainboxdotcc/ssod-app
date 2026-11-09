@@ -966,3 +966,83 @@ h3.discord-heading {
 	object-fit: contain;
 	user-select: none;
 }
+
+.online-dot.offline {
+	background: #c9a24a;
+}
+
+.connection-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 24px;
+	background: #29251e;
+	border-bottom: 1px solid #675438;
+	color: #e6cfaa;
+	font-size: 13px;
+}
+
+.connection-banner button {
+	flex-shrink: 0;
+	background: #c9a24a;
+	color: #000;
+	border: 0;
+	border-radius: 6px;
+	padding: 7px 12px;
+}
+
+.account-recovery {
+	max-height: 90vh;
+	overflow-y: auto;
+}
+
+.account-recovery h3 {
+	font-size: 15px;
+	color: #e6c68f;
+	margin: 20px 0 8px;
+}
+
+.account-recovery p {
+	font-size: 13px;
+	line-height: 1.6;
+	color: #c3c0ca;
+}
+
+.account-recovery-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.account-recovery-actions button,
+.account-recovery .modal-actions button {
+	background: #c9a24a;
+	color: #000;
+	border: 0;
+	border-radius: 6px;
+	padding: 10px 12px;
+}
+
+.account-recovery-code,
+.account-recovery-input {
+	width: 100%;
+	background: #111216;
+	border: 1px solid #464750;
+	color: #eee;
+	border-radius: 6px;
+	padding: 12px;
+	font: 13px ui-monospace, monospace;
+	margin-top: 10px;
+	margin-bottom: 16px;
+}
+
+.account-recovery-code {
+	height: 82px;
+	resize: none;
+	overflow-wrap: anywhere;
+}
+
+.account-recovery-error {
+	color: #ff9292 !important;
+}
