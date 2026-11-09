@@ -42,7 +42,7 @@ function ansiColour(codes: number[], index: number): [string | undefined, number
 	return [undefined, 0];
 }
 
-export function AnsiBlock({ text }: { text: string }) {
+export function AnsiBlock({ text, onBlueText }: { text: string; onBlueText?: (value: string) => React.ReactNode }) {
 	const fragments: React.ReactNode[] = [];
 	const pattern = /\x1b\[([0-9;]*)m/g;
 	let style: AnsiStyle = {};
@@ -53,7 +53,7 @@ export function AnsiBlock({ text }: { text: string }) {
 		if (value) {
 			fragments.push(
 				<span key={fragments.length} style={{ ...style }}>
-					{spriteText(value)}
+					{onBlueText && (style.color === ansiPalette[4] || style.color === ansiBrightPalette[4]) ? onBlueText(value) : spriteText(value)}
 				</span>
 			);
 		}

@@ -5,6 +5,7 @@ import { connectStandalone, restoreInstallationToken } from './standalone';
 import { MessageView } from './components/MessageView';
 import { ModalView } from './components/ModalView';
 import { AccountRecovery } from './components/AccountRecovery';
+import './chat.css';
 
 export function App() {
 	const [connectionStatus, setConnectionStatus] = useState('Connecting');
@@ -132,6 +133,14 @@ export function App() {
 		setMenu(false);
 		messageId.current = undefined;
 		socket.current?.send({ type: 2, data: { type: 1, name: command } });
+	};
+
+	const openChatProfile = (username: string) => {
+		if (!beginInteraction()) return;
+		setActiveCommand('profile');
+		setModal(null);
+		messageId.current = undefined;
+		socket.current?.send({ type: 2, data: { type: 1, name: 'profile', options: [{ type: 3, name: 'username', value: username }] } });
 	};
 
 	const dispatch = (interaction: Interaction) => {
@@ -278,7 +287,7 @@ export function App() {
 								disabled={interactionPending || connectionStatus !== 'Connected'}
 								style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
 							>
-								<MessageView message={message} dispatch={dispatch} />
+								<MessageView message={message} dispatch={dispatch} chat={activeCommand === 'start' ? { onProfile: openChatProfile, response: lastResponse } : undefined} />
 							</fieldset>
 						</section>
 

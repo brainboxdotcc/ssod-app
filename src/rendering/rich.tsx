@@ -1,6 +1,7 @@
 import React from 'react';
 import { spriteText } from './sprites';
 import { AnsiBlock } from './ansi';
+import { ChatBlock } from '../components/ChatBlock';
 import { ZoomableImage } from '../components/ZoomableImage';
 
 function richInline(text: string): React.ReactNode[] {
@@ -262,7 +263,7 @@ function richLines(text: string): React.ReactNode[] {
 	return blocks;
 }
 
-export function rich(text: string): React.ReactNode[] {
+export function rich(text: string, chat?: { onProfile: (username: string) => void; response: unknown }): React.ReactNode[] {
 	const blocks: React.ReactNode[] = [];
 	const fences = /```([^\n`]*)\n([\s\S]*?)```/g;
 	let cursor = 0;
@@ -277,7 +278,7 @@ export function rich(text: string): React.ReactNode[] {
 
 		blocks.push(
 			language === 'ansi' ? (
-				<AnsiBlock key={blocks.length} text={match[2]} />
+				chat ? <ChatBlock key={blocks.length} text={match[2]} {...chat} /> : <AnsiBlock key={blocks.length} text={match[2]} />
 			) : (
 				<pre className="ansi-block" key={blocks.length}>
 					<code>{match[2]}</code>

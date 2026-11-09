@@ -4,13 +4,13 @@ import { EmbedView } from './EmbedView';
 import { ComponentView } from './ComponentView';
 import { rich } from '../rendering/rich';
 
-export function MessageView({ message, dispatch }: { message: Message; dispatch: (i: Interaction) => void }) {
+export function MessageView({ message, dispatch, chat }: { message: Message; dispatch: (i: Interaction) => void; chat?: { onProfile: (username: string) => void; response: unknown } }) {
 	return (
 		<div className="message">
 			{message.content && <div className="message-content">{rich(message.content)}</div>}
 
 			{message.embeds?.map((e, i) => (
-				<EmbedView key={i} embed={e} />
+				<EmbedView key={i} embed={e} chat={i === 1 ? chat : undefined} />
 			))}
 
 			{message.attachments?.map((a) => (

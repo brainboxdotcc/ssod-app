@@ -4,7 +4,7 @@ import { spriteText } from '../rendering/sprites';
 import { rich } from '../rendering/rich';
 import { ZoomableImage } from './ZoomableImage';
 
-export function EmbedView({ embed }: { embed: Embed }) {
+export function EmbedView({ embed, chat }: { embed: Embed; chat?: { onProfile: (username: string) => void; response: unknown } }) {
 	return (
 		<article
 			className="embed"
@@ -35,14 +35,14 @@ export function EmbedView({ embed }: { embed: Embed }) {
 				</h2>
 			)}
 
-			{embed.description && <div className="description">{rich(embed.description)}</div>}
+			{embed.description && <div className="description">{rich(embed.description, chat)}</div>}
 
 			{!!embed.fields?.length && (
 				<div className="fields">
 					{embed.fields.map((field, i) => (
 						<div key={i} className={`field ${field.inline ? 'inline' : ''}`}>
 							<div className="field-name">{rich(field.name)}</div>
-							<div className="field-value">{rich(field.value)}</div>
+							<div className="field-value">{rich(field.value, chat)}</div>
 						</div>
 					))}
 				</div>
