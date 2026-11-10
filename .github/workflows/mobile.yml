@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+    env:
+      HAS_ANDROID_KEYS: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,8 +28,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      # GitHub-hosted Ubuntu runners already include the Android SDK.
-      # Gradle installs any additional platform/build-tools packages required.
       - name: Validate WebSocket endpoint
         run: |
           if [ -z "$VITE_GAME_WS_URL" ]; then
@@ -43,8 +43,7 @@ jobs:
           npm install
           npm run build
       - name: Sync Android project
-        run: |
-          npx cap sync android
+        run: npx cap sync android
       - name: Configure Gradle cache
         uses: gradle/actions/setup-gradle@v4
       - name: Use direct Gradle distribution host and allow retries
@@ -77,9 +76,9 @@ jobs:
               -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
           fi
-      - name: Build self-signed debug APK
+      - name: Build debug APK, release APK and Android App Bundle
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug assembleRelease bundleRelease --no-daemon
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -93,16 +92,20 @@ jobs:
           gh release upload android-test \
             android/app/build/outputs/apk/debug/app-debug.apk#seven-spells-android.apk \
             --clobber
-      - name: Build unsigned release APK
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
       - name: Upload unsigned APK
         uses: actions/upload-artifact@v4
         with:
           name: seven-spells-android-unsigned
           path: android/app/build/outputs/apk/release/*unsigned.apk
           if-no-files-found: error
-      - name: Sign Android release (when credentials exist)
+      - name: Upload unsigned AAB (not for Play submission)
+        if: ${{ env.HAS_ANDROID_KEYS != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: seven-spells-android-unsigned-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+      - name: Sign Android release APK and AAB
         if: ${{ env.HAS_ANDROID_KEYS == 'true' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -110,10 +113,28 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/zipalign" -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
-          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD --out seven-spells-signed.apk "$RUNNER_TEMP/aligned.apk"
-          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify seven-spells-signed.apk
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          chmod 600 "$RUNNER_TEMP/release.jks"
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BUILD_TOOLS/zipalign" -p -f 4 \
+            android/app/build/outputs/apk/release/app-release-unsigned.apk \
+            "$RUNNER_TEMP/aligned.apk"
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks "$RUNNER_TEMP/release.jks" \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD \
+            --key-pass env:ANDROID_KEY_PASSWORD \
+            --out seven-spells-signed.apk "$RUNNER_TEMP/aligned.apk"
+          "$BUILD_TOOLS/apksigner" verify seven-spells-signed.apk
+          jarsigner \
+            -keystore "$RUNNER_TEMP/release.jks" \
+            -storepass:env ANDROID_KEYSTORE_PASSWORD \
+            -keypass:env ANDROID_KEY_PASSWORD \
+            -signedjar seven-spells-android.aab \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            "$ANDROID_KEY_ALIAS"
+          jarsigner -verify seven-spells-android.aab
       - name: Upload signed APK
         if: ${{ env.HAS_ANDROID_KEYS == 'true' }}
         uses: actions/upload-artifact@v4
@@ -121,12 +142,27 @@ jobs:
           name: seven-spells-android-signed
           path: seven-spells-signed.apk
           if-no-files-found: error
-    env:
-      HAS_ANDROID_KEYS: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+      - name: Upload signed AAB
+        if: ${{ env.HAS_ANDROID_KEYS == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: seven-spells-android-aab
+          path: seven-spells-android.aab
+          if-no-files-found: error
+      - name: Publish signed Android AAB to rolling release
+        if: ${{ env.HAS_ANDROID_KEYS == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload android-test \
+            seven-spells-android.aab#seven-spells-android.aab \
+            --clobber
 
   ios:
     runs-on: macos-latest
     timeout-minutes: 45
+    env:
+      HAS_IOS_KEYS: ${{ secrets.IOS_CERTIFICATE_BASE64 != '' && secrets.IOS_CERTIFICATE_PASSWORD != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -147,8 +183,7 @@ jobs:
           npm install
           npm run build
       - name: Sync iOS project
-        run: |
-          npx cap sync ios
+        run: npx cap sync ios
       - name: Build unsigned iOS app for simulator
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/ssod-ios" CODE_SIGNING_ALLOWED=NO build
@@ -163,5 +198,3 @@ jobs:
       - name: Signing status
         if: ${{ env.HAS_IOS_KEYS != 'true' }}
         run: echo 'Apple distribution credentials absent; unsigned simulator build completed. No IPA is produced.'
-    env:
-      HAS_IOS_KEYS: ${{ secrets.IOS_CERTIFICATE_BASE64 != '' && secrets.IOS_CERTIFICATE_PASSWORD != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' }}

@@ -1,8 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { spriteText } from './sprites';
 import { AnsiBlock } from './ansi';
 import { ChatBlock } from '../components/ChatBlock';
 import { ZoomableImage } from '../components/ZoomableImage';
+
+function DiscordTimestamp({ seconds, format }: { seconds: number; format: string }) {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		if (format !== 'R') return;
+		const interval = window.setInterval(() => setNow(Date.now()), 15000);
+		return () => window.clearInterval(interval);
+	}, [format]);
+
+	const date = new Date(seconds * 1000);
+	const locale = navigator.language || 'en-GB';
+	if (!Number.isFinite(date.getTime())) return null;
+
+	let label: string;
+	if (format === 'R') {
+		const delta = (date.getTime() - now) / 1000;
+		const abs = Math.abs(delta);
+		const [unit, divisor]: [Intl.RelativeTimeFormatUnit, number] =
+			abs < 60 ? ['second', 1] :
+			abs < 3600 ? ['minute', 60] :
+			abs < 86400 ? ['hour', 3600] :
+			abs < 2592000 ? ['day', 86400] :
+			abs < 31536000 ? ['month', 2592000] : ['year', 31536000];
+		label = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+			.format(Math.round(delta / divisor), unit);
+	} else {
+		const options: Intl.DateTimeFormatOptions =
+			format === 't' ? { hour: 'numeric', minute: '2-digit' } :
+			format === 'T' ? { hour: 'numeric', minute: '2-digit', second: '2-digit' } :
+			format === 'd' ? { day: '2-digit', month: '2-digit', year: 'numeric' } :
+			format === 'D' ? { day: 'numeric', month: 'long', year: 'numeric' } :
+			format === 'F' ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' } :
+			{ day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' };
+		label = new Intl.DateTimeFormat(locale, options).format(date);
+	}
+
+	return <time dateTime={date.toISOString()} title={date.toLocaleString(locale)}>{label}</time>;
+}
 
 function richInline(text: string): React.ReactNode[] {
 	const output: React.ReactNode[] = [];
@@ -44,10 +83,22 @@ function richInline(text: string): React.ReactNode[] {
 			continue;
 		}
 
+		const timestamp = /^<t:(-?\d+)(?::([tTdDfFR]))?>/.exec(rest);
+		if (timestamp) {
+			const seconds = Number(timestamp[1]);
+			if (Number.isFinite(seconds) && Number.isFinite(seconds * 1000) &&
+				Math.abs(seconds * 1000) <= 8.64e15) {
+				flush();
+				append(<DiscordTimestamp seconds={seconds} format={timestamp[2] || 'f'} />);
+				cursor += timestamp[0].length;
+				continue;
+			}
+		}
+
 		const code = /^(`+)([\s\S]*?)\1(?!`)/.exec(rest);
 		if (code && !code[2].includes('\n')) {
 			flush();
-			append(code[2] === '/start' ? 'start a new character' : <code>{code[2]}</code>);
+			append(<code>{code[2]}</code>);
 			cursor += code[0].length;
 			continue;
 		}
