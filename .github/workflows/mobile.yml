@@ -50,6 +50,13 @@ jobs:
       - name: Sync Android project
         run: npx cap sync android
 
+      - name: Set Android version code
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          sed -i -E "s/^([[:space:]]*versionCode[[:space:]]+)[0-9]+/\1${BUILD_NUMBER}/" android/app/build.gradle
+          grep -E "^[[:space:]]*versionCode[[:space:]]+${BUILD_NUMBER}$" android/app/build.gradle
+
       - name: Configure Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
