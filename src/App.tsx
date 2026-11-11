@@ -266,6 +266,9 @@ export function App() {
 					<FileText size={17} /> Terms of Service
 				</button>				
 				<div className="sidebar-bottom">
+					<a className="nav-item discord-link" href="https://discord.gg/brainbox" target="_blank" rel="noopener noreferrer">
+						<img src="/discord.svg" alt="" width={17} height={17} /> Join our Discord
+					</a>
 					<div className={`online-dot ${connectionStatus === 'Connected' ? '' : 'offline'}`} />
 					{connectionStatus}
 					<br />
