@@ -6,6 +6,7 @@ import { MessageView } from './components/MessageView';
 import { ModalView } from './components/ModalView';
 import { AccountRecovery } from './components/AccountRecovery';
 import './chat.css';
+import { ambience } from './ambience';
 
 export function App() {
 	const [connectionStatus, setConnectionStatus] = useState('Connecting');
@@ -18,7 +19,7 @@ export function App() {
 	const [lastResponse, setLastResponse] = useState<unknown>(null);
 	const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 	const [currentUsername, setCurrentUsername] = useState<string | null>(null);
-	const [muted, setMuted] = useState(true);
+	const [muted, setMuted] = useState(() => ambience.isMuted());
 	const [menu, setMenu] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
 	const [activeCommand, setActiveCommand] = useState('start');
@@ -103,6 +104,7 @@ export function App() {
 				const incoming = findMessage(packet);
 				if (!incoming) return;
 				if (typeof incoming.id === 'string') messageId.current = incoming.id;
+				ambience.acceptNonce(incoming.nonce);
 				setMessage((current) => ({ ...current, ...incoming }));
 				setModal(null);
 				finishInteraction();
@@ -298,8 +300,8 @@ export function App() {
 						)}
 						<button
 							className="icon-button"
-							onClick={() => setMuted((v) => !v)}
-							title="Audio placeholder (not implemented)"
+							onClick={() => { const next = !muted; ambience.setMuted(next); setMuted(next); }}
+							title={muted ? "Enable ambience" : "Mute ambience"}
 						>
 							{muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
 						</button>

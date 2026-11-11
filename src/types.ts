@@ -67,6 +67,7 @@ export type Embed = {
 };
 
 export type Message = {
+	nonce?: string;
 	id?: string;
 	content?: string;
 	embeds?: Embed[];
