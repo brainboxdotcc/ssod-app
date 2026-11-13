@@ -1,4 +1,4 @@
-name: Mobile builds
+name: Application builds
 
 on:
   workflow_dispatch:
@@ -257,3 +257,57 @@ jobs:
       - name: Signing status
         if: ${{ env.HAS_IOS_KEYS != 'true' }}
         run: echo 'Apple distribution credentials absent; unsigned simulator build completed. No IPA is produced.'
+
+
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate WebSocket endpoint
+        shell: bash
+        run: |
+          if [ -z "$VITE_GAME_WS_URL" ]; then
+            echo "::error::Set the VITE_GAME_WS_URL repository variable in Settings > Secrets and variables > Actions > Variables"
+            exit 1
+          fi
+          case "$VITE_GAME_WS_URL" in
+            wss://*) ;;
+            *) echo "::error::VITE_GAME_WS_URL must begin with wss://"; exit 1 ;;
+          esac
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Windows executable
+        run: npx tauri build --no-bundle
+
+      - name: Package Steam distribution
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path steam-build | Out-Null
+          Copy-Item "src-tauri/target/release/*.exe" steam-build/
+          Compress-Archive -Path steam-build/* -DestinationPath seven-spells-steam-windows.zip
+
+      - name: Upload Steam distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: seven-spells-steam-windows
+          path: seven-spells-steam-windows.zip
+          if-no-files-found: error
