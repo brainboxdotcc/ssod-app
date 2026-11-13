@@ -2,48 +2,61 @@
 #[cfg(target_os = "windows")]
 #[tauri::command]
 fn get_steam_id() -> Option<String> {
-	use libloading::{Library, Symbol};
-	use std::ffi::{c_char, c_void, CStr};
+	use libloading::Library;
+	use std::ffi::c_void;
+
+	type SteamInit = unsafe extern "C" fn(*mut c_void) -> i32;
+	type SteamShutdown = unsafe extern "C" fn();
+	type SteamUser = unsafe extern "C" fn() -> *mut c_void;
+	type SteamGetId = unsafe extern "C" fn(*mut c_void) -> u64;
 
 	unsafe {
 		let library = Library::new("steam_api64.dll").ok()?;
 
-		type Init = unsafe extern "C" fn() -> bool;
-		type GetHSteamUser = unsafe extern "C" fn() -> i32;
-		type GetHSteamPipe = unsafe extern "C" fn() -> i32;
-		type GetSteamUser = unsafe extern "C" fn(i32, i32, *const c_char) -> *mut c_void;
-		type GetSteamID = unsafe extern "C" fn(*mut c_void) -> u64;
+		let init = library.get::<SteamInit>(b"SteamAPI_InitFlat\0").ok()?;
+		let shutdown = library.get::<SteamShutdown>(b"SteamAPI_Shutdown\0").ok()?;
+		let get_id = library.get::<SteamGetId>(b"SteamAPI_ISteamUser_GetSteamID\0").ok()?;
 
-		let init: Symbol<Init> = library.get(b"SteamAPI_Init\0").ok()?;
-		let get_user: Symbol<GetHSteamUser> = library.get(b"SteamAPI_GetHSteamUser\0").ok()?;
-		let get_pipe: Symbol<GetHSteamPipe> = library.get(b"SteamAPI_GetHSteamPipe\0").ok()?;
-		let get_interface: Symbol<GetSteamUser> = library.get(b"SteamInternal_FindOrCreateUserInterface\0").ok()?;
-		let get_steam_id: Symbol<GetSteamID> = library.get(b"SteamAPI_ISteamUser_GetSteamID\0").ok()?;
+		// Find a supported ISteamUser accessor exported by the DLL.
+		let versions: &[&[u8]] = &[
+			b"SteamAPI_SteamUser_v024\0",
+			b"SteamAPI_SteamUser_v023\0",
+			b"SteamAPI_SteamUser_v022\0",
+			b"SteamAPI_SteamUser_v021\0",
+			b"SteamAPI_SteamUser_v020\0",
+		];
 
-		if !init() {
+		let mut user_interface: Option<SteamUser> = None;
+
+		for version in versions {
+			if let Ok(symbol) = library.get::<SteamUser>(version) {
+				user_interface = Some(*symbol);
+				break;
+			}
+		}
+
+		let user_interface = user_interface?;
+
+		// SteamAPI_InitFlat returns 0 on success.
+		if init(std::ptr::null_mut()) != 0 {
 			return None;
 		}
 
-		let user = get_user();
-		let pipe = get_pipe();
+		let user = user_interface();
 
-		if user == 0 || pipe == 0 {
-			return None;
-		}
+		let steam_id = if user.is_null() {
+			0
+		} else {
+			get_id(user)
+		};
 
-		let interface = get_interface(user, pipe, b"SteamUser023\0".as_ptr().cast());
-
-		if interface.is_null() {
-			return None;
-		}
-
-		let steam_id = get_steam_id(interface);
+		shutdown();
 
 		if steam_id == 0 {
-			return None;
+			None
+		} else {
+			Some(steam_id.to_string())
 		}
-
-		Some(steam_id.to_string())
 	}
 }
 
