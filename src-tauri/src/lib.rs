@@ -1,7 +1,7 @@
 #[cfg(target_os = "windows")]
 #[tauri::command]
 fn get_steam_id() -> Option<String> {
-	let (client, _callbacks) = steamworks::Client::init().ok()?;
+	let client = steamworks::Client::init().ok()?;
 
 	Some(client.user().steam_id().raw().to_string())
 }
