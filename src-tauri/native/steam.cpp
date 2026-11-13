@@ -13,15 +13,21 @@ extern "C" uint64_t ssod_steam_id() {
 		return 0;
 	}
 
-	using init_fn = bool (__cdecl *)();
-	using shutdown_fn = void (__cdecl *)();
-	using get_user_fn = ISteamUser* (__cdecl *)();
-	using get_steam_id_fn = uint64_t (__cdecl *)(ISteamUser*);
+	auto init = reinterpret_cast<decltype(&SteamAPI_InitFlat)>(
+		GetProcAddress(dll, "SteamAPI_InitFlat")
+	);
 
-	auto init = reinterpret_cast<init_fn>(GetProcAddress(dll, "SteamAPI_Init"));
-	auto shutdown = reinterpret_cast<shutdown_fn>(GetProcAddress(dll, "SteamAPI_Shutdown"));
-	auto get_user = reinterpret_cast<get_user_fn>(GetProcAddress(dll, "SteamAPI_SteamUser_v023"));
-	auto get_steam_id = reinterpret_cast<get_steam_id_fn>(GetProcAddress(dll, "SteamAPI_ISteamUser_GetSteamID"));
+	auto shutdown = reinterpret_cast<decltype(&SteamAPI_Shutdown)>(
+		GetProcAddress(dll, "SteamAPI_Shutdown")
+	);
+
+	auto get_user = reinterpret_cast<decltype(&SteamAPI_SteamUser_v023)>(
+		GetProcAddress(dll, "SteamAPI_SteamUser_v023")
+	);
+
+	auto get_steam_id = reinterpret_cast<decltype(&SteamAPI_ISteamUser_GetSteamID)>(
+		GetProcAddress(dll, "SteamAPI_ISteamUser_GetSteamID")
+	);
 
 	if (!init || !shutdown || !get_user || !get_steam_id) {
 		OutputDebugStringA("Steamworks: Missing DLL exports\n");
@@ -31,8 +37,13 @@ extern "C" uint64_t ssod_steam_id() {
 
 	OutputDebugStringA("Steamworks: Initialising\n");
 
-	if (!init()) {
-		OutputDebugStringA("Steamworks: Initialisation failed\n");
+	SteamErrMsg error{};
+	ESteamAPIInitResult result = init(&error);
+
+	if (result != k_ESteamAPIInitResult_OK) {
+		OutputDebugStringA("Steamworks: Initialisation failed: ");
+		OutputDebugStringA(error);
+		OutputDebugStringA("\n");
 		FreeLibrary(dll);
 		return 0;
 	}
