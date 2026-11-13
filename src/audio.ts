@@ -1,4 +1,4 @@
-const BASE_URL = 'https://images.ssod.org/resource/audio/';
+const BASE_URL = '/audio/';
 const FADE_MS = 3000;
 const MAX_VOLUME = 0.3;
 
