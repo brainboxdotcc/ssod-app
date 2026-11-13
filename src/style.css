@@ -1069,3 +1069,147 @@ h3.discord-heading {
 .discord-link:hover {
     text-decoration: none;
 }
+
+
+.audio-options {
+    max-width: 760px;
+}
+
+.audio-options-panel {
+    background: #1d1e25;
+    border: 1px solid #34343e;
+    border-radius: 14px;
+    padding: 26px;
+}
+
+.audio-options-panel h2 {
+    margin: 0 0 28px;
+    color: #e6c68f;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.audio-option {
+    margin-bottom: 28px;
+}
+
+.audio-option > label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    color: #dedee6;
+    font-size: 14px;
+}
+
+.audio-option > label span {
+    color: #c4a57d;
+    font-variant-numeric: tabular-nums;
+}
+
+.audio-option input[type="range"] {
+    width: 100%;
+    accent-color: #c4a57d;
+    cursor: pointer;
+}
+
+.audio-mode {
+    border: 0;
+    border-top: 1px solid #34343e;
+    padding: 24px 0 0;
+    margin: 8px 0 0;
+}
+
+.audio-mode legend {
+    color: #e6c68f;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 0 0 12px;
+}
+
+.audio-mode > label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    cursor: pointer;
+}
+
+.audio-mode input {
+    margin-top: 3px;
+    accent-color: #c4a57d;
+}
+
+.audio-mode label span {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.audio-mode strong {
+    color: #dedee6;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.audio-mode small {
+    color: #888994;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+    .audio-options-panel {
+        padding: 18px;
+    }
+}
+
+.game-panel {
+    position: relative;
+}
+
+.game-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 16, 21, 0.45);
+    border-radius: inherit;
+}
+
+.game-loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: #202127;
+    border: 1px solid #b99a61;
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+    color: #d6b36a;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.game-loading-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(214, 179, 106, 0.2);
+    border-top-color: #d6b36a;
+    border-radius: 50%;
+    animation: game-loading-spin 0.8s linear infinite;
+}
+
+@keyframes game-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .game-loading-spinner {
+        animation: none;
+        border-color: #d6b36a;
+    }
+}

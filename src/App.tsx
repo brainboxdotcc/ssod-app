@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, X, Trash2, ShieldCheck, FileText } from 'lucide-react';
+import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, X, Trash2, ShieldCheck, FileText, Settings } from 'lucide-react';
 import type { Interaction, Message, Modal } from './types';
 import { connectStandalone, restoreInstallationToken } from './standalone';
 import { MessageView } from './components/MessageView';
 import { ModalView } from './components/ModalView';
 import { AccountRecovery } from './components/AccountRecovery';
 import './chat.css';
+import { AudioOptions } from './components/AudioOptions';
 import { acceptAudioNonce, ambience, music } from './audio';
 
 export function App() {
@@ -24,6 +25,7 @@ export function App() {
 	);
 	const [menu, setMenu] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
+	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [activeCommand, setActiveCommand] = useState('start');
 	const socket = useRef<ReturnType<typeof connectStandalone> | null>(null);
 	const messageId = useRef<string | undefined>(undefined);
@@ -148,8 +150,10 @@ export function App() {
 		return true;
 	};
 
+
 	const navigate = (command: string) => {
 		if (!beginInteraction()) return;
+		setOptionsOpen(false);
 		setActiveCommand(command);
 		setModal(null);
 		setMenu(false);
@@ -240,7 +244,7 @@ export function App() {
 				).map(([command, Icon, label]) => (
 					<button
 						key={command}
-						className={`nav-item ${activeCommand === command ? 'active' : ''}`}
+						className={`nav-item ${!optionsOpen && activeCommand === command ? 'active' : ''}`}
 						disabled={connectionStatus !== 'Connected' || interactionPending}
 						onClick={() => navigate(command)}
 					>
@@ -248,6 +252,16 @@ export function App() {
 						{label}
 					</button>
 				))}
+				<button
+					className={`nav-item ${optionsOpen ? 'active' : ''}`}
+					onClick={() => {
+						setOptionsOpen(true);
+						setMenu(false);
+					}}
+				>
+					<Settings size={17} /> Options
+				</button>
+
 				<div className="sidebar-label">ACCOUNT</div>
 				<button className="nav-item" onClick={() => { setAccountOpen(true); setMenu(false); }}>
 					<KeyRound size={17} /> Account recovery
@@ -328,35 +342,70 @@ export function App() {
 						<button type="button" onClick={() => socket.current?.retry()}>Retry now</button>
 					</div>
 				)}
-				{interactionPending && <div role="status">Waiting for Seven Spells…</div>}
 				{interactionError && <div role="alert">{interactionError}</div>}
 
 				<div className="content">
-					<div className="game-layout">
-						<section className="game-panel">
-							<fieldset
-								disabled={interactionPending || connectionStatus !== 'Connected'}
-								style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
-							>
-								<MessageView message={message} dispatch={dispatch} chat={activeCommand === 'start' ? { onProfile: openChatProfile, response: lastResponse, currentUsername } : undefined} />
-							</fieldset>
-						</section>
-
-						{showJson && (
-							<aside className="inspector">
-								<div className="inspector-title">Last received WebSocket payload</div>
-								<pre>{JSON.stringify(lastResponse, null, 2)}</pre>
-								<div className="inspector-title">Current message JSON</div>
-								<pre>{JSON.stringify(message, null, 2)}</pre>
-								<div className="inspector-title">Interaction log</div>
-								{log.map((line, i) => (
-									<div className="log-line" key={i}>
-										{line}
+					{optionsOpen ? (
+						<AudioOptions
+							onChange={() =>
+								setMuted(ambience.isMuted() && music.isMuted())
+							}
+						/>
+					) : (
+						<div className="game-layout">
+							<section className={`game-panel ${interactionPending ? 'game-panel-pending' : ''}`}>
+								<fieldset
+									disabled={interactionPending || connectionStatus !== 'Connected'}
+									style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+								>
+									<MessageView
+										message={message}
+										dispatch={dispatch}
+										chat={
+											activeCommand === 'start'
+												? {
+													onProfile: openChatProfile,
+													response: lastResponse,
+													currentUsername
+												}
+												: undefined
+										}
+									/>
+								</fieldset>
+								{interactionPending && (
+									<div className="game-loading-overlay" role="status" aria-live="polite">
+										<div className="game-loading-indicator">
+											<div className="game-loading-spinner" aria-hidden="true" />
+											<span>Waiting for Seven Spells…</span>
+										</div>
 									</div>
-								))}
-							</aside>
-						)}
-					</div>
+								)}								
+							</section>
+
+							{showJson && (
+								<aside className="inspector">
+									<div className="inspector-title">
+										Last received WebSocket payload
+									</div>
+									<pre>{JSON.stringify(lastResponse, null, 2)}</pre>
+
+									<div className="inspector-title">
+										Current message JSON
+									</div>
+									<pre>{JSON.stringify(message, null, 2)}</pre>
+
+									<div className="inspector-title">
+										Interaction log
+									</div>
+									{log.map((line, i) => (
+										<div className="log-line" key={i}>
+											{line}
+										</div>
+									))}
+								</aside>
+							)}
+						</div>
+					)}
 				</div>
 
 				<footer className="footer">Seven Spells of Destruction · v0.1.0</footer>
