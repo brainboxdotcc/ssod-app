@@ -35,6 +35,10 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
-    }
+    },
+	"externalBin": [],
+	"resources": {
+		"native/steamworks/redistributable_bin/win64/steam_api64.dll": "steam_api64.dll"
+	}	
   }
 }

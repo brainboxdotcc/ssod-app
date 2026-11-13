@@ -303,11 +303,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path steam-build | Out-Null
           Copy-Item "src-tauri/target/release/*.exe" steam-build/
-          Compress-Archive -Path steam-build/* -DestinationPath seven-spells-steam-windows.zip
+          Copy-Item "src-tauri/native/steamworks/redistributable_bin/win64/steam_api64.dll" steam-build/
 
       - name: Upload Steam distribution
         uses: actions/upload-artifact@v4
         with:
           name: seven-spells-steam-windows
-          path: seven-spells-steam-windows.zip
+          path: steam-build/
           if-no-files-found: error
