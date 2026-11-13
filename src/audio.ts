@@ -10,7 +10,7 @@ class AudioController {
     private pending: Track | null = null;
     private fadingOut: Track | null = null;
     private muted = true;
-    private volume: number;
+    private volume = 100;
     private generation = 0;
     private frame: number | null = null;
     private waitingForGesture = false;
