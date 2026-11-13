@@ -8,6 +8,14 @@ import { AccountRecovery } from './components/AccountRecovery';
 import './chat.css';
 import { AudioOptions } from './components/AudioOptions';
 import { acceptAudioNonce, ambience, music } from './audio';
+import { invoke, isTauri } from '@tauri-apps/api/core';
+
+async function getSteamId(): Promise<string | null> {
+	if (!isTauri()) {
+		return null;
+	}
+	return await invoke<string | null>('get_steam_id');
+}
 
 export function App() {
 	const [connectionStatus, setConnectionStatus] = useState('Connecting');
@@ -36,6 +44,12 @@ export function App() {
 	const pendingRef = useRef(false);
 	const pendingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+	useEffect(() => {
+		getSteamId().then(steamId => {
+			console.log('SteamID64:', steamId);
+		});
+	}, []);
+
 	const finishInteraction = () => {
 		if (pendingTimeout.current !== null) clearTimeout(pendingTimeout.current);
 		pendingTimeout.current = null;
@@ -54,6 +68,7 @@ export function App() {
 		}, 10000);
 		return true;
 	};
+
 
 	useEffect(() => {
 		const connection = connectStandalone(
@@ -112,7 +127,8 @@ export function App() {
 				setMessage((current) => ({ ...current, ...incoming }));
 				setModal(null);
 				finishInteraction();
-			}
+			},
+			getSteamId
 		);
 		socket.current = connection;
 		return () => {
@@ -123,7 +139,6 @@ export function App() {
 			connection.close();
 		};
 	}, []);
-
 
 	const restoreAccount = (code: string): boolean => {
 		try {

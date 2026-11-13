@@ -21,10 +21,12 @@ export function restoreInstallationToken(token: string): boolean {
 	return true;
 }
 
+
 export function connectStandalone(
 	url: string,
 	onStatus: (status: string) => void,
-	onResponse: (response: unknown) => void
+	onResponse: (response: unknown) => void,
+	getSteamId: () => Promise<string | null>
 ): { send: (payload: unknown) => void; close: () => void; retry: () => void } {
 	let socket: WebSocket | null = null;
 	let authenticated = false;
@@ -56,10 +58,28 @@ export function connectStandalone(
 		}
 		socket = current;
 
-		current.addEventListener('open', () => {
+		current.addEventListener('open', async () => {
 			if (stopped || current !== socket) return;
-			current.send(JSON.stringify({ type: 'auth', token: installationToken() }));
+
+			const auth: Record<string, string> = {
+				type: 'auth',
+				token: installationToken(),
+			};
+
+			try {
+				const steamId = await getSteamId();
+				if (steamId !== null) {
+					auth.steam_id = steamId;
+				}
+			} catch (error) {
+				console.warn('Steam identification unavailable:', error);
+			}
+
+			if (stopped || current !== socket || current.readyState !== WebSocket.OPEN) return;
+
+			current.send(JSON.stringify(auth));
 			onStatus('Authenticating');
+
 			authTimer = setTimeout(() => {
 				if (current === socket && !authenticated) current.close();
 			}, 10000);
