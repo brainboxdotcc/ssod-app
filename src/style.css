@@ -1213,3 +1213,101 @@ h3.discord-heading {
         border-color: #d6b36a;
     }
 }
+
+/*@media (min-width: 1200px) {
+	.content {
+		max-width: none;
+	}
+
+	.game-layout {
+		width: 100%;
+	}
+
+	.game-panel {
+		max-width: none;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.embed-image {
+		width: auto;
+		max-width: min(100%, 700px);
+		height: auto;
+		max-height: none;
+		object-fit: contain;
+	}
+
+	.message:has(> .embed + .embed) {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: start;
+		gap: 12px;
+	}
+
+	.message:has(> .embed + .embed) > .embed:first-child {
+		grid-column: 1;
+		grid-row: 1 / span 20;
+	}
+
+	.message:has(> .embed + .embed) > .embed:not(:first-child) {
+		grid-column: 2;
+	}
+
+	.message:has(> .embed + .embed) > .action-row,
+	.message:has(> .embed + .embed) > .select-wrap {
+		grid-column: 2;
+	}
+}*/
+
+@media (min-width: 1200px) {
+	.content {
+		max-width: none;
+	}
+
+	.game-layout {
+		width: 100%;
+	}
+
+	.game-panel {
+		max-width: none;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.message:has(> .embed + .embed) {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: start;
+		gap: 12px;
+	}
+
+	.message:has(> .embed + .embed) > .embed:has(.embed-image) {
+		grid-column: 1 / -1;
+		grid-row: 1;
+		position: relative;
+		min-height: 380px;
+		padding-right: calc(45% + 20px);
+	}
+
+	.message:has(> .embed + .embed) > .embed:has(.embed-image) .embed-image {
+		position: absolute;
+		top: 16px;
+		right: 16px;
+		width: calc(45% - 16px);
+		max-width: 600px;
+		height: auto;
+		max-height: none;
+		margin: 0;
+		object-fit: contain;
+	}
+
+	.message:has(> .embed + .embed) > .embed:not(:first-child) {
+		grid-column: 1;
+		grid-row: 2 / span 5;
+	}
+
+	.message:has(> .embed + .embed) > .action-row,
+	.message:has(> .embed + .embed) > .select-wrap {
+		grid-column: 2;
+	}
+}
