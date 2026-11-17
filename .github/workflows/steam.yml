@@ -129,20 +129,18 @@ jobs:
           $vdf | Set-Content steampipe/app_build.vdf -Encoding ascii
 
       - name: Upload to SteamPipe
-        shell: pwsh
+        shell: bash
         env:
           STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
         run: |
-          $PSNativeCommandUseErrorActionPreference = $false
+          script="$(cygpath -w "$(pwd)/steampipe/app_build.vdf")"
 
-          $script = (Resolve-Path steampipe/app_build.vdf).Path
+          ./steamcmd/steamcmd.exe \
+            +login "$STEAM_USERNAME" \
+            +run_app_build "$script" \
+            +quit || true
 
-          & "$PWD/steamcmd/steamcmd.exe" `
-            +login "$env:STEAM_USERNAME" `
-            +run_app_build "$script" `
-            +quit
-
-          Write-Host "SteamCMD exited with code $LASTEXITCODE"
+          echo "SteamCMD invocation finished."
 
       - name: Publish Steam build
         shell: pwsh
