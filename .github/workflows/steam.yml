@@ -2,7 +2,7 @@ name: Steam and itch.io distribution
 
 on:
   workflow_run:
-    workflows: ["Application builds"]
+    workflows: ["Windows builds"]
     types: [completed]
     branches: [steam]
 
