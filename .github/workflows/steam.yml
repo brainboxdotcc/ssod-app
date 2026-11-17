@@ -92,7 +92,6 @@ jobs:
               "Desc" "GitHub Actions - ${{ github.event.workflow_run.head_sha }}"
               "ContentRoot" "$content"
               "BuildOutput" "$output"
-              "SetLive" "default"
 
               "Depots"
               {
@@ -129,6 +128,46 @@ jobs:
 
           if ($LASTEXITCODE -ne 0) {
               throw "SteamPipe upload failed: $LASTEXITCODE"
+          }
+
+      - name: Publish Steam build
+        shell: pwsh
+        env:
+          STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:STEAM_WEB_API_KEY)) {
+              throw "STEAM_WEB_API_KEY secret is missing."
+          }
+
+          $log = Get-Content steampipe/output/app_build_1146240.log -Raw
+          $match = [regex]::Match(
+              $log,
+              'Successfully finished AppID 1146240 build \(BuildID (\d+)\)'
+          )
+
+          if (!$match.Success) {
+              throw "Could not determine SteamPipe BuildID."
+          }
+
+          $buildId = $match.Groups[1].Value
+          Write-Host "Publishing Steam build $buildId"
+
+          $body = @{
+              key = $env:STEAM_WEB_API_KEY
+              appid = "1146240"
+              buildid = $buildId
+              betakey = "public"
+          }
+
+          $response = Invoke-WebRequest `
+              -Uri "https://partner.steam-api.com/ISteamApps/SetAppBuildLive/v2/" `
+              -Method Post `
+              -Body $body
+
+          if ($response.StatusCode -eq 201) {
+              Write-Host "Steam build $buildId is awaiting Steam Mobile confirmation."
+          } else {
+              Write-Host "Steam accepted publication request for build $buildId (HTTP $($response.StatusCode))."
           }
 
   itch:
