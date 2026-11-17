@@ -2,11 +2,6 @@ name: Steam and itch.io distribution
 
 on:
   workflow_dispatch:
-    inputs:
-      run_id:
-        description: "Successful Windows builds workflow run ID"
-        required: true
-        type: string
   workflow_run:
     workflows: ["Windows builds"]
     types: [completed]
@@ -26,11 +21,34 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Find Windows build
+        id: build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_run") {
+              $runId = "${{ github.event.workflow_run.id }}"
+          } else {
+              $runs = gh api `
+                "repos/${{ github.repository }}/actions/workflows/tauri.yml/runs?branch=steam&status=success&per_page=1"
+
+              $runId = ($runs | ConvertFrom-Json).workflow_runs[0].id
+          }
+
+          $run = gh api "repos/${{ github.repository }}/actions/runs/$runId" | ConvertFrom-Json
+
+          "run_id=$runId" >> $env:GITHUB_OUTPUT
+          "sha=$($run.head_sha)" >> $env:GITHUB_OUTPUT
+          "run_number=$($run.run_number)" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Using Windows build run $runId"
+
       - name: Download Windows build
         uses: actions/download-artifact@v4
         with:
           name: seven-spells-steam-windows
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.build.outputs.run_id }}
           github-token: ${{ github.token }}
           path: steam-build
 
@@ -89,7 +107,7 @@ jobs:
           "AppBuild"
           {
               "AppID" "1146240"
-              "Desc" "GitHub Actions - ${{ github.event.workflow_run.head_sha }}"
+              "Desc" "GitHub Actions - ${{ steps.build.outputs.sha }}"
               "ContentRoot" "$content"
               "BuildOutput" "$output"
 
@@ -171,11 +189,34 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Find Windows build
+        id: build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_run") {
+              $runId = "${{ github.event.workflow_run.id }}"
+          } else {
+              $runs = gh api `
+                "repos/${{ github.repository }}/actions/workflows/tauri.yml/runs?branch=steam&status=success&per_page=1"
+
+              $runId = ($runs | ConvertFrom-Json).workflow_runs[0].id
+          }
+
+          $run = gh api "repos/${{ github.repository }}/actions/runs/$runId" | ConvertFrom-Json
+
+          "run_id=$runId" >> $env:GITHUB_OUTPUT
+          "sha=$($run.head_sha)" >> $env:GITHUB_OUTPUT
+          "run_number=$($run.run_number)" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Using Windows build run $runId"
+
       - name: Download Windows build
         uses: actions/download-artifact@v4
         with:
           name: seven-spells-steam-windows
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.build.outputs.run_id }}
           github-token: ${{ github.token }}
           path: steam-build
 
@@ -205,7 +246,7 @@ jobs:
           & "$PWD/butler/butler.exe" push `
             steam-build `
             "$env:ITCH_TARGET" `
-            --userversion "${{ github.event.workflow_run.run_number }}"
+            --userversion "${{ steps.build.outputs.run_number }}"
 
           if ($LASTEXITCODE -ne 0) {
               throw "Butler upload failed: $LASTEXITCODE"
