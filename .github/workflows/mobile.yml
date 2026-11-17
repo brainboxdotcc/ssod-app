@@ -3,7 +3,7 @@ name: Mobile builds
 on:
   workflow_dispatch:
   push:
-    branches: [main, steam]
+    branches: [main]
 
 permissions:
   contents: read
