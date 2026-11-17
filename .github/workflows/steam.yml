@@ -1,0 +1,183 @@
+name: Steam and itch.io distribution
+
+on:
+  workflow_run:
+    workflows: ["Application builds"]
+    types: [completed]
+    branches: [steam]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: steam-distribution
+  cancel-in-progress: false
+
+jobs:
+  steam:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'steam' &&
+        github.event.workflow_run.event == 'push'
+      }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: seven-spells-steam-windows
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: steam-build
+
+      - name: Verify distribution
+        shell: pwsh
+        run: |
+          $exe = @(Get-ChildItem steam-build -Filter *.exe -File)
+          if ($exe.Count -ne 1) {
+              throw "Expected exactly one Windows executable."
+          }
+          if (!(Test-Path steam-build/steam_api64.dll)) {
+              throw "steam_api64.dll is missing."
+          }
+          Get-ChildItem steam-build
+
+      - name: Download SteamCMD
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force steamcmd | Out-Null
+          Invoke-WebRequest `
+            "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" `
+            -OutFile "$env:RUNNER_TEMP/steamcmd.zip"
+          Expand-Archive "$env:RUNNER_TEMP/steamcmd.zip" steamcmd
+
+      - name: Restore Steam authentication
+        shell: pwsh
+        env:
+          STEAM_CONFIG: ${{ secrets.STEAM_CONFIG_VDF_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:STEAM_CONFIG)) {
+              throw "STEAM_CONFIG_VDF_BASE64 secret is missing."
+          }
+
+          New-Item -ItemType Directory -Force steamcmd/config | Out-Null
+          $bytes = [Convert]::FromBase64String($env:STEAM_CONFIG)
+          [IO.File]::WriteAllBytes(
+              "$PWD/steamcmd/config/config.vdf",
+              $bytes
+          )
+
+      - name: Generate SteamPipe configuration
+        shell: pwsh
+        env:
+          DEPOT_ID: ${{ vars.STEAM_DEPOT_ID }}
+        run: |
+          if ($env:DEPOT_ID -notmatch '^\d+$') {
+              throw "Set STEAM_DEPOT_ID to the Windows depot ID."
+          }
+
+          New-Item -ItemType Directory -Force steampipe/output | Out-Null
+
+          $content = (Resolve-Path steam-build).Path.Replace('\', '/')
+          $output = (Resolve-Path steampipe/output).Path.Replace('\', '/')
+
+          $vdf = @"
+          "AppBuild"
+          {
+              "AppID" "1146240"
+              "Desc" "GitHub Actions - ${{ github.event.workflow_run.head_sha }}"
+              "ContentRoot" "$content"
+              "BuildOutput" "$output"
+              "SetLive" "default"
+
+              "Depots"
+              {
+                  "$env:DEPOT_ID"
+                  {
+                      "FileMapping"
+                      {
+                          "LocalPath" "*"
+                          "DepotPath" "."
+                          "recursive" "1"
+                      }
+                  }
+              }
+          }
+          "@
+
+          $vdf | Set-Content steampipe/app_build.vdf -Encoding ascii
+
+      - name: Upload to SteamPipe
+        shell: pwsh
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:STEAM_USERNAME)) {
+              throw "STEAM_USERNAME secret is missing."
+          }
+
+          $script = (Resolve-Path steampipe/app_build.vdf).Path
+
+          & "$PWD/steamcmd/steamcmd.exe" `
+            +login "$env:STEAM_USERNAME" `
+            +run_app_build "$script" `
+            +quit
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "SteamPipe upload failed: $LASTEXITCODE"
+          }
+
+  itch:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'steam' &&
+        github.event.workflow_run.event == 'push'
+      }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: seven-spells-steam-windows
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: steam-build
+
+      - name: Install Butler
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            "https://broth.itch.zone/butler/windows-amd64/LATEST/archive/default" `
+            -OutFile "$env:RUNNER_TEMP/butler.zip"
+
+          Expand-Archive "$env:RUNNER_TEMP/butler.zip" butler
+          & "$PWD/butler/butler.exe" version
+
+      - name: Publish to itch.io
+        shell: pwsh
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:BUTLER_API_KEY)) {
+              throw "BUTLER_API_KEY secret is missing."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:ITCH_TARGET)) {
+              throw "ITCH_TARGET repository variable is missing."
+          }
+
+          & "$PWD/butler/butler.exe" push `
+            steam-build `
+            "$env:ITCH_TARGET" `
+            --userversion "${{ github.event.workflow_run.run_number }}"
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Butler upload failed: $LASTEXITCODE"
+          }

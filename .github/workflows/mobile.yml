@@ -3,7 +3,7 @@ name: Application builds
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, steam]
 
 permissions:
   contents: read
