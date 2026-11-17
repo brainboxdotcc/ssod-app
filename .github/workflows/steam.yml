@@ -1,6 +1,12 @@
 name: Steam and itch.io distribution
 
 on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Successful Windows builds workflow run ID"
+        required: true
+        type: string
   workflow_run:
     workflows: ["Windows builds"]
     types: [completed]
