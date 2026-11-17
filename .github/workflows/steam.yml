@@ -115,6 +115,8 @@ jobs:
         env:
           STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+
           $script = (Resolve-Path steampipe/app_build.vdf).Path
 
           & "$PWD/steamcmd/steamcmd.exe" `
