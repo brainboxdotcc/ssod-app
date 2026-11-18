@@ -22,7 +22,7 @@ class AudioController {
         private readonly muteKey: string
     ) {
         try {
-            this.muted = localStorage.getItem(muteKey) !== 'false';
+            this.muted = localStorage.getItem(muteKey) === 'true';
 			this.volume = directory === 'music' ? 20 : 100;
             const stored = localStorage.getItem(`${muteKey}-volume`);
             if (stored !== null) {

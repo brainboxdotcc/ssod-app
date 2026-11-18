@@ -9,6 +9,8 @@ import './chat.css';
 import { AudioOptions } from './components/AudioOptions';
 import { acceptAudioNonce, ambience, music } from './audio';
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { TitleScreen } from './components/TitleScreen';
+import { APP_VERSION } from './version';
 
 async function getSteamId(): Promise<string | null> {
 	if (!isTauri()) {
@@ -20,6 +22,8 @@ async function getSteamId(): Promise<string | null> {
 export function App() {
 	const [connectionStatus, setConnectionStatus] = useState('Connecting');
 	const [message, setMessage] = useState<Message>({});
+	const [showTitle, setShowTitle] = useState(false);
+	const titleShown = useRef(false);	
 	const [modal, setModal] = useState<Modal | null>(null);
 	const [log, setLog] = useState<string[]>([]);
 	const [showJson, setShowJson] = useState(false);
@@ -122,6 +126,16 @@ export function App() {
 				}
 				const incoming = findMessage(packet);
 				if (!incoming) return;
+				if (
+					!titleShown.current &&
+					Array.isArray(incoming.embeds) &&
+					incoming.embeds.some((embed) =>
+						isObject(embed) && embed.title === 'New Character Creation'
+					)
+				) {
+					titleShown.current = true;
+					setShowTitle(true);
+				}				
 				if (typeof incoming.id === 'string') messageId.current = incoming.id;
 				acceptAudioNonce(incoming.nonce);
 				setMessage((current) => ({ ...current, ...incoming }));
@@ -423,7 +437,7 @@ export function App() {
 					)}
 				</div>
 
-				<footer className="footer">Seven Spells of Destruction · v0.1.0</footer>
+				<footer className="footer">Seven Spells of Destruction · v{APP_VERSION}</footer>
 			</main>
 
 			{accountOpen && (
@@ -433,6 +447,7 @@ export function App() {
 				/>
 			)}
 			{modal && <ModalView key={modal.custom_id} modal={modal} close={() => setModal(null)} submit={dispatch} />}
+			{showTitle && <TitleScreen onContinue={() => setShowTitle(false)} />}
 		</div>
 	);
 }

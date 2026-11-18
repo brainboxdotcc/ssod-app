@@ -36,13 +36,18 @@ textarea:focus-visible {
 }
 .sidebar {
 	width: 250px;
+	height: 100dvh;
+	position: sticky;
+	top: 0;
 	flex-shrink: 0;
 	background: #15161d;
 	border-right: 1px solid #2a2a33;
 	display: flex;
 	flex-direction: column;
 	padding: 22px 14px;
+	overflow-y: auto;
 }
+
 .brand {
 	display: flex;
 	gap: 12px;
@@ -1214,50 +1219,26 @@ h3.discord-heading {
     }
 }
 
-/*@media (min-width: 1200px) {
-	.content {
-		max-width: none;
-	}
+.button-tooltip {
+	z-index: 1000;
+	max-width: 280px;
+	padding: 9px 12px;
+	border: 1px solid #665673;
+	border-radius: 7px;
+	background: #25262e;
+	color: #eee2f7;
+	font-size: 12px;
+	line-height: 1.5;
+	box-shadow: 0 8px 24px #0008;
+}
 
-	.game-layout {
-		width: 100%;
-	}
+.button-tooltip-arrow {
+	fill: #25262e;
+}
 
-	.game-panel {
-		max-width: none;
-		flex: 1;
-		min-width: 0;
-	}
-
-	.embed-image {
-		width: auto;
-		max-width: min(100%, 700px);
-		height: auto;
-		max-height: none;
-		object-fit: contain;
-	}
-
-	.message:has(> .embed + .embed) {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		align-items: start;
-		gap: 12px;
-	}
-
-	.message:has(> .embed + .embed) > .embed:first-child {
-		grid-column: 1;
-		grid-row: 1 / span 20;
-	}
-
-	.message:has(> .embed + .embed) > .embed:not(:first-child) {
-		grid-column: 2;
-	}
-
-	.message:has(> .embed + .embed) > .action-row,
-	.message:has(> .embed + .embed) > .select-wrap {
-		grid-column: 2;
-	}
-}*/
+.message-components > .action-row + .action-row {
+	margin-top: 8px;
+}
 
 @media (min-width: 1200px) {
 	.content {
@@ -1274,40 +1255,38 @@ h3.discord-heading {
 		min-width: 0;
 	}
 
-	.message:has(> .embed + .embed) {
+	.message {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		align-items: start;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 12px;
+		align-items: start;
 	}
 
-	.message:has(> .embed + .embed) > .embed:has(.embed-image) {
+	/* The location embed spans both columns. */
+	.message > .embed:first-child:has(.embed-image) {
 		grid-column: 1 / -1;
-		grid-row: 1;
 		position: relative;
 		min-height: 380px;
-		padding-right: calc(45% + 20px);
+		padding-right: calc(50% + 12px);
 	}
 
-	.message:has(> .embed + .embed) > .embed:has(.embed-image) .embed-image {
+	/* Location artwork occupies the right half. */
+	.message > .embed:first-child:has(.embed-image) .embed-image {
 		position: absolute;
 		top: 16px;
 		right: 16px;
-		width: calc(45% - 16px);
-		max-width: 600px;
+		width: auto;
 		height: auto;
-		max-height: none;
+		max-width: calc(50% - 24px);
+		max-height: calc(100% - 32px);
 		margin: 0;
 		object-fit: contain;
 	}
 
-	.message:has(> .embed + .embed) > .embed:not(:first-child) {
-		grid-column: 1;
-		grid-row: 2 / span 5;
-	}
-
-	.message:has(> .embed + .embed) > .action-row,
-	.message:has(> .embed + .embed) > .select-wrap {
-		grid-column: 2;
+	/* Everything else flows naturally, two abreast. */
+	.message > .embed,
+	.message > .action-row,
+	.message > .select-wrap {
+		min-width: 0;
 	}
 }

@@ -69,7 +69,7 @@ export function ZoomableImage({ src, alt, className }: { src: string; alt: strin
 								<div className="image-viewer-stage">
 									<TransformComponent
 										wrapperStyle={{ width: '100%', height: '100%' }}
-										contentStyle={{ width: '100%', height: '100%' }}
+										contentStyle={{ width: 'fit-content', height: 'fit-content' }}
 									>
 										<img src={src} alt={alt} draggable={false} />
 									</TransformComponent>

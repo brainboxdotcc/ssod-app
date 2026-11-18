@@ -3,6 +3,8 @@ import type { Component, Interaction } from '../types';
 import { EmojiView, spriteText } from '../rendering/sprites';
 import { rich } from '../rendering/rich';
 import { SelectView } from './SelectView';
+import { ButtonTooltip } from './ButtonTooltip';
+import { Globe } from 'lucide-react';
 
 export function ComponentView({
 	component: c,
@@ -23,23 +25,27 @@ export function ComponentView({
 
 		case 2:
 			return c.style === 5 ? (
-				<a className="discord-button style-5" href={c.url || '#'} target="_blank" rel="noopener noreferrer">
-					<EmojiView emoji={c.emoji} /> {c.label && spriteText(c.label)}
-					{' ↗'}
-				</a>
+				<ButtonTooltip label={c.label}>
+					<a className="discord-button style-5" href={c.url || '#'} target="_blank" rel="noopener noreferrer">
+						<Globe size={16} color="#68baff" />
+						{c.label && spriteText(c.label)}
+					</a>
+				</ButtonTooltip>
 			) : (
-				<button
-					disabled={c.disabled}
-					className={`discord-button style-${c.style || 2}`}
-					onClick={() => dispatch({ custom_id: c.custom_id || '' })}
-				>
-					{c.emoji?.name && (
-						<span className="emoji">
-							<EmojiView emoji={c.emoji} />
-						</span>
-					)}
-					{c.label && spriteText(c.label)}
-				</button>
+				<ButtonTooltip label={c.label} emoji={c.emoji?.name}>
+					<button
+						disabled={c.disabled}
+						className={`discord-button style-${c.style || 2}`}
+						onClick={() => dispatch({ custom_id: c.custom_id || '' })}
+					>
+						{c.emoji?.name && (
+							<span className="emoji">
+								<EmojiView emoji={c.emoji} />
+							</span>
+						)}
+						{c.label && spriteText(c.label)}
+					</button>
+				</ButtonTooltip>
 			);
 
 		case 3:

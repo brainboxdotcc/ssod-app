@@ -19,9 +19,52 @@ export function MessageView({ message, dispatch, chat }: { message: Message; dis
 				</a>
 			))}
 
-			{message.components?.map((c, i) => (
-				<ComponentView key={`${message.id || 'message'}-${i}`} component={c} dispatch={dispatch} />
-			))}
+			<div className="message-components">
+				{(() => {
+					const components = message.components || [];
+
+					const buttons = components.flatMap(c =>
+						c.type === 1 ? (c.components || []) : []
+					);
+
+					const yellow = buttons.filter(c => c.type === 2 && c.style === 1);
+					const red = buttons.filter(c => c.type === 2 && c.style === 4);
+					const other = buttons.filter(c => !(c.type === 2 && (c.style === 1 || c.style === 4)));
+					const hasInventory = buttons.some(c => c.type === 2 && c.label === 'Inventory');
+
+					if ((yellow.length > 0 || red.length > 0) && hasInventory && components.every(c => c.type === 1)) {
+						return (
+							<div className="message-components">
+								{yellow.length > 0 && (
+									<div className="action-row">
+										{yellow.map((c, i) => (
+											<ComponentView key={i} component={c} dispatch={dispatch} />
+										))}
+									</div>
+								)}
+								{red.length > 0 && (
+									<div className="action-row">
+										{red.map((c, i) => (
+											<ComponentView key={i} component={c} dispatch={dispatch} />
+										))}
+									</div>
+								)}
+								{other.length > 0 && (
+									<div className="action-row">
+										{other.map((c, i) => (
+											<ComponentView key={i} component={c} dispatch={dispatch} />
+										))}
+									</div>
+								)}
+							</div>
+						);
+					}
+
+					return components.map((c, i) => (
+						<ComponentView key={`${message.id || 'message'}-${i}`} component={c} dispatch={dispatch} />
+					));
+				})()}
+			</div>
 		</div>
 	);
 }

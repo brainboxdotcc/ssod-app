@@ -28,13 +28,13 @@ export function SelectView({
 
 		const close = (e: PointerEvent) => {
 			if (!dropdown.current?.contains(e.target as Node)) {
-				setOpen(false);
+				commitSelection();
 			}
 		};
 
 		const escape = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') {
-				setOpen(false);
+				commitSelection();
 			}
 		};
 
@@ -45,7 +45,24 @@ export function SelectView({
 			document.removeEventListener('pointerdown', close);
 			document.removeEventListener('keydown', escape);
 		};
-	}, [open]);
+	}, [open, selected]);
+	
+	const commitSelection = () => {
+		setOpen(false);
+
+		if (!multiple) {
+			return;
+		}
+
+		if (selected.length < min || selected.length > max) {
+			return;
+		}
+
+		dispatch({
+			custom_id: c.custom_id || '',
+			values: selected,
+		});
+	};
 
 	const multiple = (c.max_values || 1) > 1;
 	const max = c.max_values || options.length;
@@ -108,7 +125,17 @@ export function SelectView({
 
 	return (
 		<div className="select-wrap multi-select" ref={dropdown}>
-			<div className="multi-select-control" onClick={() => !c.disabled && setOpen((v) => !v)}>
+			<div className="multi-select-control" onClick={() => {
+				if (c.disabled) {
+					return;
+				}
+
+				if (open) {
+					commitSelection();
+				} else {
+					setOpen(true);
+				}
+			}}>
 				<div className="multi-select-pills">
 					{selected.length ? (
 						selected.map((value) => {
@@ -124,9 +151,17 @@ export function SelectView({
 										disabled={c.disabled}
 										onClick={(e) => {
 											e.stopPropagation();
-											toggle(value);
-										}}
-									>
+
+											const updated = selected.filter((v) => v !== value);
+											setSelected(updated);
+
+											if (updated.length >= min) {
+												dispatch({
+													custom_id: c.custom_id || '',
+													values: updated,
+												});
+											}
+										}}									>
 										<X size={12} />
 									</button>
 								</span>
@@ -168,18 +203,6 @@ export function SelectView({
 					})}
 				</div>
 			)}
-
-			<button
-				type="button"
-				className="select-submit"
-				disabled={c.disabled || selected.length < min || selected.length > max}
-				onClick={() => {
-					dispatch({ custom_id: c.custom_id || '', values: selected });
-					setOpen(false);
-				}}
-			>
-				Confirm
-			</button>
 		</div>
 	);
 }
