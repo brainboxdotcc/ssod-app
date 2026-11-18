@@ -39,6 +39,8 @@ export function App() {
 	const [accountOpen, setAccountOpen] = useState(false);
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [activeCommand, setActiveCommand] = useState('start');
+	const activeCommandRef = useRef('start');
+	const messageRef = useRef<Message>({});
 	const socket = useRef<ReturnType<typeof connectStandalone> | null>(null);
 	const messageId = useRef<string | undefined>(undefined);
 	const currentUserIdRef = useRef<number | null>(null);
@@ -73,7 +75,6 @@ export function App() {
 		return true;
 	};
 
-
 	useEffect(() => {
 		const connection = connectStandalone(
 			import.meta.env.VITE_GAME_WS_URL,
@@ -89,6 +90,22 @@ export function App() {
 				setLastResponse(response);
 				if (!response || typeof response !== 'object') return;
 				const packet = response as Record<string, unknown>;
+
+				if (packet.type === 'chat_refresh') {
+					const hasChatButton = messageRef.current.components?.some(row =>
+						row.components?.some(component =>
+							component.type === 2 && component.emoji?.name === '💬'
+						)
+					);
+					if (activeCommandRef.current === 'start' && hasChatButton) {
+						socket.current?.send({
+							type: 2,
+							data: { type: 1, name: 'start' }
+						});
+					}
+					return;
+				}
+
 				if (typeof packet.ssod_user_id === 'number') {
 					if (currentUserIdRef.current !== packet.ssod_user_id) {
 						setCurrentUsername(null);
@@ -96,9 +113,11 @@ export function App() {
 					}
 					setCurrentUserId(packet.ssod_user_id);
 				}
+
 				if (typeof packet.ssod_username === 'string') {
 					setCurrentUsername(packet.ssod_username);
 				}
+
 				const isObject = (value: unknown): value is Record<string, unknown> =>
 					typeof value === 'object' && value !== null && !Array.isArray(value);
 				const isMessage = (value: Record<string, unknown>) =>
@@ -114,6 +133,7 @@ export function App() {
 					}
 					return null;
 				};
+
 				const callbackType = typeof packet.type === 'number' ? packet.type : undefined;
 				const body = isObject(packet.data) ? packet.data : packet;
 				if (
@@ -124,6 +144,7 @@ export function App() {
 					setModal(body as Modal);
 					return;
 				}
+
 				const incoming = findMessage(packet);
 				if (!incoming) return;
 				if (
@@ -135,15 +156,21 @@ export function App() {
 				) {
 					titleShown.current = true;
 					setShowTitle(true);
-				}				
+				}
+
 				if (typeof incoming.id === 'string') messageId.current = incoming.id;
 				acceptAudioNonce(incoming.nonce);
-				setMessage((current) => ({ ...current, ...incoming }));
+				setMessage((current) => {
+					const updated = { ...current, ...incoming };
+					messageRef.current = updated;
+					return updated;
+				});
 				setModal(null);
 				finishInteraction();
 			},
 			getSteamId
 		);
+
 		socket.current = connection;
 		return () => {
 			socket.current = null;
@@ -164,6 +191,7 @@ export function App() {
 		finishInteraction();
 		setInteractionError('');
 		setMessage({});
+		messageRef.current = {};
 		setModal(null);
 		setLastResponse(null);
 		setCurrentUserId(null);
@@ -172,6 +200,7 @@ export function App() {
 		setLog([]);
 		messageId.current = undefined;
 		setActiveCommand('start');
+		activeCommandRef.current = 'start';
 		setConnectionStatus('Connecting');
 		setAccountOpen(false);
 		socket.current?.retry();
@@ -179,10 +208,10 @@ export function App() {
 		return true;
 	};
 
-
 	const navigate = (command: string) => {
 		if (!beginInteraction()) return;
 		setOptionsOpen(false);
+		activeCommandRef.current = command;
 		setActiveCommand(command);
 		setModal(null);
 		setMenu(false);
