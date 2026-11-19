@@ -24,6 +24,7 @@ export function ComponentView({
 			);
 
 		case 2:
+			if (c.emoji?.name === '♻') return null;
 			return c.style === 5 ? (
 				<ButtonTooltip label={c.label}>
 					<a className="discord-button style-5" href={c.url || '#'} target="_blank" rel="noopener noreferrer">

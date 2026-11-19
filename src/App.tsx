@@ -91,6 +91,11 @@ export function App() {
 				if (!response || typeof response !== 'object') return;
 				const packet = response as Record<string, unknown>;
 
+				if (packet.type === 5) {
+					// deferred, we do nothing and get the update later via websocket push
+					finishInteraction();
+					return;
+				}
 				if (packet.type === 'chat_refresh') {
 					const hasChatButton = messageRef.current.components?.some(row =>
 						row.components?.some(component =>

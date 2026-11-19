@@ -1240,6 +1240,12 @@ h3.discord-heading {
 	margin-top: 8px;
 }
 
+.action-row > .select-wrap {
+	flex: 0 0 100%;
+	width: 100%;
+	min-width: min(280px, 100%);
+}
+
 @media (min-width: 1200px) {
 	.content {
 		max-width: none;
