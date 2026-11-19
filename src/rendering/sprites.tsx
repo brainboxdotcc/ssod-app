@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Emoji } from '../types';
 
-const spriteBase = 'https://admin.ssod.org/img/icons/';
+const spriteBase = '/icons/';
 
 export function Sprite({ name }: { name: string }) {
 	const filename = name.length === 2 && name.endsWith('_') ? name.slice(0, -1) : name;
