@@ -419,7 +419,7 @@ export function App() {
 						/>
 					) : (
 						<div className="game-layout">
-							<section className={`game-panel ${interactionPending ? 'game-panel-pending' : ''}`}>
+							<section className={`game-panel ${interactionPending ? 'game-panel-pending' : ''} ${activeCommand === 'map' ? 'map-panel' : ''}`}>
 								<fieldset
 									disabled={interactionPending || connectionStatus !== 'Connected'}
 									style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}

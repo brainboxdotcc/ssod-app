@@ -1246,6 +1246,51 @@ h3.discord-heading {
 	min-width: min(280px, 100%);
 }
 
+/* Golden hover glow for buttons and dropdowns */
+.discord-button,
+.select-submit,
+.select-wrap select,
+.multi-select-control,
+.nav-item,
+.icon-button {
+	transition: box-shadow 0.35s ease, border-color 0.35s ease, background-color 0.35s ease, color 0.35s ease;
+}
+
+.discord-button {
+	--glow-color: #c9a24a;
+}
+
+.style-1 { --glow-color: #c9a24a; }
+.style-2, .style-5 { --glow-color: #555960; }
+.style-3 { --glow-color: #4f8965; }
+.style-4 { --glow-color: #a94f4f; }
+
+.select-submit,
+.multi-select-control,
+.select-wrap select {
+	--glow-color: #c9a24a;
+}
+
+.discord-button:hover:not(:disabled),
+.select-submit:hover:not(:disabled),
+.select-wrap select:hover:not(:disabled),
+.multi-select-control:hover {
+	box-shadow:
+		0 0 12px color-mix(in srgb, var(--glow-color) 80%, transparent),
+		0 0 30px color-mix(in srgb, var(--glow-color) 50%, transparent);
+}
+
+.select-wrap select:hover:not(:disabled),
+.multi-select-control:hover {
+	border-color: #e4c68b;
+}
+
+.discord-button:disabled,
+.select-submit:disabled,
+.select-wrap select:disabled {
+	box-shadow: none;
+}
+
 @media (min-width: 1200px) {
 	.content {
 		max-width: none;
@@ -1294,5 +1339,26 @@ h3.discord-heading {
 	.message > .action-row,
 	.message > .select-wrap {
 		min-width: 0;
+	}
+	
+	/* Full-width world map */
+	.map-panel .message {
+		display: block;
+	}
+
+	.map-panel .message > .embed:first-child:has(.embed-image) {
+		min-height: 0;
+		padding: 16px 18px;
+	}
+
+	.map-panel .message > .embed:first-child:has(.embed-image) .embed-image {
+		position: static;
+		display: block;
+		width: 100%;
+		height: auto;
+		max-width: none;
+		max-height: none;
+		margin-top: 16px;
+		object-fit: contain;
 	}
 }
