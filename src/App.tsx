@@ -239,6 +239,7 @@ export function App() {
 		if (!beginInteraction()) {
 			return;
 		}
+
 		setLog((l) =>
 			[`${interaction.custom_id}${interaction.values ? ` → ${interaction.values.join(', ')}` : ''}`, ...l].slice(0, 8)
 		);
@@ -271,6 +272,14 @@ export function App() {
 				}) || [];
 			socket.current?.send({ type: 5, data: { custom_id: interaction.custom_id, components } });
 			setModal(null);
+			if (interaction.fields && modal?.title === 'Chat') {
+				setTimeout(() => {
+					socket.current?.send({
+						type: 2,
+						data: { type: 1, name: 'start' }
+					});
+				}, 100);
+			}
 		} else {
 			socket.current?.send({
 				type: 3,
