@@ -1,3 +1,6 @@
+import { Capacitor } from '@capacitor/core';
+import { isTauri } from '@tauri-apps/api/core';
+
 const TOKEN_KEY = 'seven-spells-standalone-token';
 
 export function installationToken(): string {
@@ -20,6 +23,7 @@ export function restoreInstallationToken(token: string): boolean {
 	localStorage.setItem(TOKEN_KEY, value);
 	return true;
 }
+
 
 
 export function connectStandalone(
@@ -61,18 +65,32 @@ export function connectStandalone(
 		current.addEventListener('open', async () => {
 			if (stopped || current !== socket) return;
 
+			let platform = 'web';
+			let steamId: string | null = null;
+
+			if (Capacitor.isNativePlatform()) {
+				platform = Capacitor.getPlatform();
+			} else if (isTauri()) {
+				platform = 'windows';
+
+				try {
+					steamId = await getSteamId();
+					if (steamId !== null) {
+						platform = 'steam';
+					}
+				} catch (error) {
+					console.warn('Steam identification unavailable:', error);
+				}
+			}
+
 			const auth: Record<string, string> = {
 				type: 'auth',
 				token: installationToken(),
+				platform,
 			};
 
-			try {
-				const steamId = await getSteamId();
-				if (steamId !== null) {
-					auth.steam_id = steamId;
-				}
-			} catch (error) {
-				console.warn('Steam identification unavailable:', error);
+			if (steamId !== null) {
+				auth.steam_id = steamId;
 			}
 
 			if (stopped || current !== socket || current.readyState !== WebSocket.OPEN) return;
