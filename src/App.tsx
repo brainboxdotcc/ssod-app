@@ -96,20 +96,6 @@ export function App() {
 					finishInteraction();
 					return;
 				}
-				if (packet.type === 'chat_refresh') {
-					const hasChatButton = messageRef.current.components?.some(row =>
-						row.components?.some(component =>
-							component.type === 2 && component.emoji?.name === '💬'
-						)
-					);
-					if (activeCommandRef.current === 'start' && hasChatButton) {
-						socket.current?.send({
-							type: 2,
-							data: { type: 1, name: 'start' }
-						});
-					}
-					return;
-				}
 
 				if (typeof packet.ssod_user_id === 'number') {
 					if (currentUserIdRef.current !== packet.ssod_user_id) {
@@ -121,6 +107,23 @@ export function App() {
 
 				if (typeof packet.ssod_username === 'string') {
 					setCurrentUsername(packet.ssod_username);
+				}
+				
+				if (packet.type === 'chat_refresh') {
+					if (!pendingRef.current) {
+						const hasChatButton = messageRef.current.components?.some(row =>
+							row.components?.some(component =>
+								component.type === 2 && component.emoji?.name === '💬'
+							)
+						);
+						if (activeCommandRef.current === 'start' && hasChatButton) {
+							socket.current?.send({
+								type: 2,
+								data: { type: 1, name: 'start' }
+							});
+						}
+					}
+					return;
 				}
 
 				const isObject = (value: unknown): value is Record<string, unknown> =>
