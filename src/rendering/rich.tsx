@@ -332,7 +332,7 @@ export function rich(text: string, chat?: { onProfile: (username: string) => voi
 				chat ? <ChatBlock key={blocks.length} text={match[2]} {...chat} /> : <AnsiBlock key={blocks.length} text={match[2]} />
 			) : (
 				<pre className="ansi-block" key={blocks.length}>
-					<code>{match[2]}</code>
+					<code>{match[1] ? match[1].trim() : ''}<br />{match[2] ? match[2].trim() : ''}</code>
 				</pre>
 			)
 		);
