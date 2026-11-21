@@ -64,6 +64,28 @@ jobs:
           }
           Get-ChildItem steam-build
 
+      - name: Bundle WebView2 prerequisite
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" `
+            -OutFile "steam-build/MicrosoftEdgeWebview2Setup.exe"
+
+          @'
+          "InstallScript"
+          {
+              "Run Process"
+              {
+                  "WebView2 Runtime"
+                  {
+                      "Process 1" "%INSTALLDIR%\\MicrosoftEdgeWebview2Setup.exe"
+                      "Command 1" "/silent /install"
+                      "NoCleanUp" "1"
+                  }
+              }
+          }
+          '@ | Set-Content "steam-build/installscript.vdf" -Encoding ascii
+
       - name: Download SteamCMD
         shell: pwsh
         run: |
@@ -121,6 +143,7 @@ jobs:
                           "DepotPath" "."
                           "recursive" "1"
                       }
+                      "InstallScript" "installscript.vdf"
                   }
               }
           }
