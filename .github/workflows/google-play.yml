@@ -1,0 +1,80 @@
+name: Google Play distribution
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Mobile builds"]
+    types: [completed]
+    branches: [steam]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: google-play-distribution
+  cancel-in-progress: false
+
+jobs:
+  google-play:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Find Android build
+        id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            RUN_ID="${{ github.event.workflow_run.id }}"
+          else
+            RUN_ID=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow "Mobile builds" \
+              --branch steam \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId')
+          fi
+
+          test -n "$RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download signed Android bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: seven-spells-android-aab-encrypted
+          run-id: ${{ steps.build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: android-build
+
+      - name: Decrypt Android bundle
+        env:
+          ARCHIVE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full
+
+          7z x \
+            -p"$ARCHIVE_PASSWORD" \
+            -oandroid-build \
+            android-build/seven-spells-android.7z
+
+          test -s android-build/seven-spells-android.aab
+          jarsigner -verify android-build/seven-spells-android.aab
+
+      - name: Publish to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
+          packageName: ${{ vars.GOOGLE_PLAY_PACKAGE_NAME }}
+          releaseFiles: android-build/seven-spells-android.aab
+          tracks: ${{ vars.GOOGLE_PLAY_TRACK || 'internal' }}
+          status: completed
+
+      - name: Remove decrypted bundle
+        if: always()
+        run: rm -rf android-build
