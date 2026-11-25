@@ -11,6 +11,7 @@ import { acceptAudioNonce, ambience, music } from './audio';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { TitleScreen } from './components/TitleScreen';
 import { APP_VERSION } from './version';
+import { ads } from './ads';
 
 async function getSteamId(): Promise<string | null> {
 	if (!isTauri()) {
@@ -54,6 +55,8 @@ export function App() {
 		getSteamId().then(steamId => {
 			console.log('SteamID64:', steamId);
 		});
+
+		void ads.initialise();
 	}, []);
 
 	const finishInteraction = () => {
@@ -155,6 +158,9 @@ export function App() {
 
 				const incoming = findMessage(packet);
 				if (!incoming) return;
+				
+				ads.inspect(incoming as Message);
+				
 				if (
 					!titleShown.current &&
 					Array.isArray(incoming.embeds) &&
@@ -196,6 +202,7 @@ export function App() {
 			return false;
 		}
 
+		ads.reset();
 		finishInteraction();
 		setInteractionError('');
 		setMessage({});
