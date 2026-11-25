@@ -7,19 +7,25 @@ export function SelectView({
 	component: c,
 	options,
 	dispatch,
+	onSearch,
 }: {
 	component: Component;
 	options: NonNullable<Component['options']>;
 	dispatch: (i: Interaction) => void;
+	onSearch?: (query: string) => void;
 }) {
 	const [selected, setSelected] = useState<string[]>(() => options.filter((o) => o.default).map((o) => o.value));
+	const [selectedLabel, setSelectedLabel] = useState('');
 	const [open, setOpen] = useState(false);
+	const [search, setSearch] = useState('');
 	const dropdown = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		setSelected(options.filter((o) => o.default).map((o) => o.value));
-		setOpen(false);
-	}, [options]);
+		if (!onSearch) {
+			setSelected(options.filter((o) => o.default).map((o) => o.value));
+			setOpen(false);
+		}
+	}, [options, onSearch]);
 
 	useEffect(() => {
 		if (!open) {
@@ -46,7 +52,7 @@ export function SelectView({
 			document.removeEventListener('keydown', escape);
 		};
 	}, [open, selected]);
-	
+
 	const commitSelection = () => {
 		setOpen(false);
 
@@ -71,12 +77,24 @@ export function SelectView({
 	if (!multiple) {
 		return (
 			<div className="select-wrap multi-select single-select" ref={dropdown}>
-				<button type="button" className="multi-select-control" disabled={c.disabled} onClick={() => setOpen((v) => !v)}>
+				<button
+					type="button"
+					className="multi-select-control"
+					disabled={c.disabled}
+					onClick={() => {
+						if (!open && onSearch) {
+							setSearch('');
+							onSearch('');
+						}
+
+						setOpen((v) => !v);
+					}}
+				>
 					<span className="multi-select-pills">
 						{selected[0] ? (
 							<span className="single-select-value">
 								<EmojiView emoji={options.find((o) => o.value === selected[0])?.emoji} />{' '}
-								{options.find((o) => o.value === selected[0])?.label || selected[0]}
+								{options.find((o) => o.value === selected[0])?.label || selectedLabel || selected[0]}
 							</span>
 						) : (
 							<span className="multi-select-placeholder">{c.placeholder || 'Select an option'}</span>
@@ -86,27 +104,54 @@ export function SelectView({
 				</button>
 
 				{open && (
-					<div className="multi-select-menu single-select-menu" role="listbox">
-						{options.map((o) => (
-							<button
-								type="button"
-								role="option"
-								aria-selected={selected.includes(o.value)}
-								className="multi-select-option single-select-option"
-								key={o.value}
-								onClick={() => {
-									setSelected([o.value]);
-									setOpen(false);
-									dispatch({ custom_id: c.custom_id || '', values: [o.value] });
+					<div className="multi-select-menu single-select-menu">
+						{onSearch && (
+							<input
+								type="search"
+								value={search}
+								placeholder="Search…"
+								aria-label="Search options"
+								autoFocus
+								style={{ width: '100%', boxSizing: 'border-box' }}
+								onChange={(e) => {
+									setSearch(e.target.value);
+									onSearch(e.target.value);
 								}}
-							>
-								<EmojiView emoji={o.emoji} />
-								<span className="multi-select-option-text">
-									<strong>{o.label}</strong>
-									{o.description && <small>{o.description}</small>}
-								</span>
-							</button>
-						))}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') {
+										e.preventDefault();
+									}
+								}}
+							/>
+						)}
+
+						<div role="listbox">
+							{onSearch && options.length === 0 && (
+								<span className="multi-select-placeholder">No matching items</span>
+							)}
+
+							{options.map((o) => (
+								<button
+									type="button"
+									role="option"
+									aria-selected={selected.includes(o.value)}
+									className="multi-select-option single-select-option"
+									key={o.value}
+									onClick={() => {
+										setSelected([o.value]);
+										setSelectedLabel(o.label);
+										setOpen(false);
+										dispatch({ custom_id: c.custom_id || '', values: [o.value] });
+									}}
+								>
+									<EmojiView emoji={o.emoji} />
+									<span className="multi-select-option-text">
+										<strong>{o.label}</strong>
+										{o.description && <small>{o.description}</small>}
+									</span>
+								</button>
+							))}
+						</div>
 					</div>
 				)}
 			</div>
@@ -161,7 +206,8 @@ export function SelectView({
 													values: updated,
 												});
 											}
-										}}									>
+										}}
+									>
 										<X size={12} />
 									</button>
 								</span>

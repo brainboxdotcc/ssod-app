@@ -18,10 +18,12 @@ export function installationToken(): string {
 	return token;
 }
 
+let recoveryToken: string | null = null;
+
 export function restoreInstallationToken(token: string): boolean {
 	const value = token.trim().toLowerCase();
 	if (!/^[0-9a-f]{64}$/.test(value)) return false;
-	localStorage.setItem(TOKEN_KEY, value);
+	recoveryToken = value;
 	return true;
 }
 
@@ -29,7 +31,8 @@ export function connectStandalone(
 	url: string,
 	onStatus: (status: string) => void,
 	onResponse: (response: unknown) => void,
-	getSteamId: () => Promise<string | null>
+	getSteamId: () => Promise<string | null>,
+	onPremium: (premium: boolean) => void
 ): { send: (payload: unknown) => void; close: () => void; retry: () => void } {
 	let socket: WebSocket | null = null;
 	let authenticated = false;
@@ -51,6 +54,7 @@ export function connectStandalone(
 		clearTimers();
 		authenticated = false;
 		ads.setEnabled(false);
+		onPremium(false);
 		onStatus(attempts ? 'Reconnecting' : 'Connecting');
 
 		let current: WebSocket;
@@ -61,6 +65,7 @@ export function connectStandalone(
 			return;
 		}
 		socket = current;
+		const attemptedRecovery = recoveryToken;
 
 		current.addEventListener('open', async () => {
 			if (stopped || current !== socket) return;
@@ -83,11 +88,14 @@ export function connectStandalone(
 				}
 			}
 
-			const auth: Record<string, string> = {
+			const auth: Record<string, string | boolean> = {
 				type: 'auth',
-				token: installationToken(),
+				token: attemptedRecovery ?? installationToken(),
 				platform,
 			};
+			if (attemptedRecovery !== null) {
+				auth.recover = true;
+			}
 
 			if (steamId !== null) {
 				auth.steam_id = steamId;
@@ -111,21 +119,27 @@ export function connectStandalone(
 				const data = response as Record<string, unknown>;
 
 				if (data.type === 'authenticated') {
+					if (attemptedRecovery !== null) {
+						localStorage.setItem(TOKEN_KEY, attemptedRecovery);
+						recoveryToken = null;
+					}
 					authenticated = true;
 					attempts = 0;
 					if (authTimer !== null) clearTimeout(authTimer);
 					authTimer = null;
 					ads.setEnabled(data.ads_enabled === true);
+					onPremium(data.premium === true);
 					onStatus('Connected');
 				} else if (typeof data.error === 'string') {
-					if (!authenticated) {
-						rejected = true;
-						onStatus(`Error: ${data.error}`);
-						current.close();
-					} else {
-						onResponse(response);
-					}
-				} else if (authenticated) {
+				if (!authenticated) {
+					recoveryToken = null;
+					rejected = true;
+					onStatus(`Error: ${data.error}`);
+					current.close();
+				} else {
+					onResponse(response);
+				}
+			} else if (authenticated) {
 					onResponse(response);
 				}
 			} catch {

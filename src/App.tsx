@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, X, Trash2, ShieldCheck, FileText, Settings } from 'lucide-react';
+import { BookOpen, Compass, Menu, Volume2, VolumeX, ScrollText, Code2, Trophy, Map, KeyRound, Trash2, ShieldCheck, FileText, Settings } from 'lucide-react';
 import type { Interaction, Message, Modal } from './types';
 import { connectStandalone, restoreInstallationToken } from './standalone';
 import { MessageView } from './components/MessageView';
@@ -12,6 +12,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { TitleScreen } from './components/TitleScreen';
 import { APP_VERSION } from './version';
 import { ads } from './ads';
+import { PremiumOptions } from './components/PremiumOptions';
 
 async function getSteamId(): Promise<string | null> {
 	if (!isTauri()) {
@@ -24,7 +25,7 @@ export function App() {
 	const [connectionStatus, setConnectionStatus] = useState('Connecting');
 	const [message, setMessage] = useState<Message>({});
 	const [showTitle, setShowTitle] = useState(false);
-	const titleShown = useRef(false);	
+	const titleShown = useRef(false);
 	const [modal, setModal] = useState<Modal | null>(null);
 	const [log, setLog] = useState<string[]>([]);
 	const [showJson, setShowJson] = useState(false);
@@ -36,9 +37,13 @@ export function App() {
 	const [muted, setMuted] = useState(
 		() => ambience.isMuted() && music.isMuted()
 	);
+
 	const [menu, setMenu] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
 	const [optionsOpen, setOptionsOpen] = useState(false);
+	const [premium, setPremium] = useState(false);
+	const [equipmentChoices, setEquipmentChoices] = useState<{ name: string; value: string }[]>([]);
+	const equipmentSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [activeCommand, setActiveCommand] = useState('start');
 	const activeCommandRef = useRef('start');
 	const messageRef = useRef<Message>({});
@@ -92,6 +97,15 @@ export function App() {
 				if (!response || typeof response !== 'object') return;
 				const packet = response as Record<string, unknown>;
 
+				if (packet.type === 8) {
+					const data = packet.data as {
+						choices?: { name: string; value: string }[];
+					} | undefined;
+
+					setEquipmentChoices(data?.choices ?? []);
+					return;
+				}
+
 				if (packet.type === 5) {
 					// deferred, we do nothing and get the update later via websocket push
 					finishInteraction();
@@ -109,7 +123,7 @@ export function App() {
 				if (typeof packet.ssod_username === 'string') {
 					setCurrentUsername(packet.ssod_username);
 				}
-				
+
 				if (packet.type === 'chat_refresh') {
 					if (!pendingRef.current) {
 						const hasChatButton = messageRef.current.components?.some(row =>
@@ -156,9 +170,9 @@ export function App() {
 
 				const incoming = findMessage(packet);
 				if (!incoming) return;
-				
+
 				ads.inspect(incoming as Message);
-				
+
 				if (
 					!titleShown.current &&
 					Array.isArray(incoming.embeds) &&
@@ -180,7 +194,8 @@ export function App() {
 				setModal(null);
 				finishInteraction();
 			},
-			getSteamId
+			getSteamId,
+			setPremium
 		);
 
 		socket.current = connection;
@@ -193,6 +208,47 @@ export function App() {
 		};
 	}, []);
 
+	useEffect(() => {
+		setEquipmentChoices([]);
+
+		return () => {
+			if (equipmentSearchTimer.current !== null) {
+				clearTimeout(equipmentSearchTimer.current);
+				equipmentSearchTimer.current = null;
+			}
+		};
+	}, [optionsOpen, premium, connectionStatus]);
+
+	const searchEquipment = (query: string) => {
+		if (equipmentSearchTimer.current !== null) {
+			clearTimeout(equipmentSearchTimer.current);
+		}
+
+		if (!premium || connectionStatus !== 'Connected' || !optionsOpen) {
+			return;
+		}
+
+		equipmentSearchTimer.current = setTimeout(() => {
+			equipmentSearchTimer.current = null;
+
+			socket.current?.send({
+				type: 4,
+				data: {
+					type: 1,
+					name: 'rename',
+					options: [
+						{
+							type: 3,
+							name: 'item',
+							value: query,
+							focused: true
+						}
+					]
+				}
+			});
+		}, 550);
+	};
+	
 	const restoreAccount = (code: string): boolean => {
 		try {
 			if (!restoreInstallationToken(code)) return false;
@@ -201,6 +257,7 @@ export function App() {
 		}
 
 		ads.reset();
+		setPremium(false);
 		finishInteraction();
 		setInteractionError('');
 		setMessage({});
@@ -219,6 +276,40 @@ export function App() {
 		socket.current?.retry();
 
 		return true;
+	};
+
+	const renameEquipment = (item: string, name: string) => {
+		if (!premium || !beginInteraction()) {
+			return;
+		}
+
+		setOptionsOpen(false);
+		setActiveCommand('rename');
+		activeCommandRef.current = 'rename';
+		setModal(null);
+		messageId.current = undefined;
+		setMessage({});
+		messageRef.current = {};
+
+		socket.current?.send({
+			type: 2,
+			data: {
+				type: 1,
+				name: 'rename',
+				options: [
+					{
+						type: 3,
+						name: 'item',
+						value: item
+					},
+					{
+						type: 3,
+						name: 'name',
+						value: name
+					}
+				]
+			}
+		});
 	};
 
 	const navigate = (command: string) => {
@@ -360,7 +451,7 @@ export function App() {
 				</button>
 				<button className="nav-item" onClick={() => window.open('https://www.ssod.org/terms-of-service', '_blank', 'noopener,noreferrer')}>
 					<FileText size={17} /> Terms of Service
-				</button>				
+				</button>
 				<div className="sidebar-bottom">
 					<a className="nav-item discord-link" href="https://discord.gg/brainbox" target="_blank" rel="noopener noreferrer">
 						<img src="/discord.svg" alt="" width={17} height={17} /> Join our Discord
@@ -426,11 +517,21 @@ export function App() {
 
 				<div className="content">
 					{optionsOpen ? (
-						<AudioOptions
-							onChange={() =>
-								setMuted(ambience.isMuted() && music.isMuted())
-							}
-						/>
+						<>
+							<AudioOptions
+								onChange={() =>
+									setMuted(ambience.isMuted() && music.isMuted())
+								}
+							/>
+							{premium && (
+								<PremiumOptions
+									onRename={renameEquipment}
+									onSearch={searchEquipment}
+									equipmentChoices={equipmentChoices}
+									disabled={interactionPending || connectionStatus !== 'Connected'}
+								/>
+							)}
+						</>
 					) : (
 						<div className="game-layout">
 							<section className={`game-panel ${interactionPending ? 'game-panel-pending' : ''} ${activeCommand === 'map' ? 'map-panel' : ''}`}>
@@ -459,7 +560,7 @@ export function App() {
 											<span>Waiting for Seven Spells…</span>
 										</div>
 									</div>
-								)}								
+								)}
 							</section>
 
 							{showJson && (
@@ -477,11 +578,13 @@ export function App() {
 									<div className="inspector-title">
 										Interaction log
 									</div>
-									{log.map((line, i) => (
-										<div className="log-line" key={i}>
-											{line}
-										</div>
-									))}
+									<div className="inspector-log">
+										{log.map((line, i) => (
+											<div className="log-line" key={i}>
+												{line}
+											</div>
+										))}
+									</div>
 								</aside>
 							)}
 						</div>
@@ -492,7 +595,7 @@ export function App() {
 			</main>
 
 			{accountOpen && (
-			<AccountRecovery
+				<AccountRecovery
 					onClose={() => setAccountOpen(false)}
 					onRestore={restoreAccount}
 				/>

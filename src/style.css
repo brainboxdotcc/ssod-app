@@ -1291,6 +1291,261 @@ h3.discord-heading {
 	box-shadow: none;
 }
 
+.premium-options {
+	max-width: 760px;
+	margin-top: 24px;
+	padding: 26px;
+	background: #1d1e25;
+	border: 1px solid #c9a24a;
+	border-radius: 14px;
+}
+
+.premium-options h2 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 24px;
+	color: #e6c68f;
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.premium-option {
+	padding: 22px 0;
+	border-top: 1px solid #514535;
+}
+
+.premium-option:last-child {
+	padding-bottom: 0;
+}
+
+.premium-option h3 {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	margin: 0 0 10px;
+	color: #e6c68f;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.premium-option p {
+	margin: 0 0 18px;
+	color: #bfc0cb;
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.premium-option form {
+	max-width: 440px;
+}
+
+.premium-option .modal-field {
+	color: #dedee6;
+}
+
+.premium-options .premium-benefit {
+	margin-top: 20px;
+	padding-top: 20px;
+	border-top: 1px solid #34343e;
+}
+
+.premium-options .premium-benefit h3 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #e5c18b;
+}
+
+.premium-options .premium-benefit p {
+	margin: 0 0 16px;
+	font-size: 13px;
+	line-height: 1.6;
+	color: #aaa5b5;
+}
+
+.premium-rename-form {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin: 0;
+}
+
+.premium-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.premium-field > span {
+	font-size: 13px;
+	color: #dedee6;
+}
+
+.premium-field .select-wrap {
+	width: 100%;
+	margin: 0;
+}
+
+.premium-field > input,
+.single-select-menu > input[type="search"] {
+	appearance: none;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 44px;
+	padding: 10px 13px;
+	border: 1px solid #45434f;
+	border-radius: 8px;
+	background: #25262e;
+	color: #dedee6;
+	font: inherit;
+	font-size: 13px;
+	outline: none;
+	transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.premium-field > input::placeholder,
+.single-select-menu > input[type="search"]::placeholder {
+	color: #9995a5;
+}
+
+.premium-field > input:focus,
+.single-select-menu > input[type="search"]:focus {
+	border-color: #c9a66b;
+	box-shadow: 0 0 8px #c9a66330;
+}
+
+.single-select-menu > input[type="search"] {
+	margin-bottom: 6px;
+	background: #1c1d24;
+}
+
+.single-select-menu .single-select-option {
+	min-height: 38px;
+}
+
+.premium-options .premium-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	align-self: flex-start;
+	min-height: 42px;
+	padding: 10px 20px;
+	border: 1px solid #a98b58;
+	border-radius: 8px;
+	background: #302a23;
+	color: #e5c18b;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color .2s ease,
+		background .2s ease,
+		box-shadow .2s ease;
+}
+
+.premium-options .premium-action:not(:disabled):hover {
+	background: #403427;
+	border-color: #e5c18b;
+	box-shadow: 0 0 12px #c9a66350;
+}
+
+.premium-options .premium-action:disabled,
+.premium-field > input:disabled {
+	opacity: .45;
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+@media (max-width: 650px) {
+	.premium-options .premium-action {
+		width: 100%;
+	}
+
+	.premium-field > input,
+	.single-select-menu > input[type="search"] {
+		font-size: 16px;
+	}
+}
+
+.premium-field > textarea {
+	appearance: none;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 160px;
+	padding: 12px 13px;
+	border: 1px solid #45434f;
+	border-radius: 8px;
+	background: #25262e;
+	color: #dedee6;
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.6;
+	outline: none;
+	resize: vertical;
+	transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.premium-field > textarea::placeholder {
+	color: #9995a5;
+}
+
+.premium-field > textarea:focus {
+	border-color: #c9a66b;
+	box-shadow: 0 0 8px #c9a66330;
+}
+
+.premium-field > textarea:disabled {
+	opacity: .45;
+	cursor: not-allowed;
+}
+
+.premium-character-count {
+	text-align: right;
+	font-size: 12px;
+	color: #9995a5;
+}
+
+.premium-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.premium-error {
+	margin-top: 12px;
+	font-size: 13px;
+	color: #ef9292;
+}
+
+.premium-success {
+	margin-top: 12px;
+	font-size: 13px;
+	color: #9bc99b;
+}
+
+@media (max-width: 650px) {
+	.premium-field > textarea {
+		font-size: 16px;
+	}
+
+	.premium-actions > button {
+		flex: 1;
+		width: auto;
+	}
+}
+
+@media (max-width: 650px) {
+	.premium-options {
+		padding: 18px;
+		margin-top: 18px;
+	}
+}
+
 @media (min-width: 1200px) {
 	.content {
 		max-width: none;
