@@ -22,9 +22,11 @@ class Ads {
 	private showing = false;
 	private deathSeen = false;
 	private loadedAt = 0;
+	private enabled = false;
 
 	private isSupported(): boolean {
-		return Capacitor.isNativePlatform() &&
+		return this.enabled &&
+			Capacitor.isNativePlatform() &&
 			Capacitor.getPlatform() === 'android';
 	}
 
@@ -32,6 +34,17 @@ class Ads {
 		return WEB_PLACEHOLDER &&
 			!Capacitor.isNativePlatform() &&
 			!isTauri();
+	}
+
+	setEnabled(enabled: boolean): void {
+		this.enabled = enabled;
+		if (enabled) {
+			if (this.initialised) {
+				void this.preload();
+			} else {
+				void this.initialise();
+			}
+		}
 	}
 
 	async initialise(): Promise<void> {
@@ -44,6 +57,10 @@ class Ads {
 		try {
 			let consent = await AdMob.requestConsentInfo();
 
+			if (!this.isSupported()) {
+				return;
+			}
+
 			if (
 				consent.isConsentFormAvailable &&
 				consent.status === AdmobConsentStatus.REQUIRED
@@ -51,7 +68,7 @@ class Ads {
 				consent = await AdMob.showConsentForm();
 			}
 
-			if (!consent.canRequestAds) {
+			if (!this.isSupported() || !consent.canRequestAds) {
 				return;
 			}
 
@@ -78,6 +95,7 @@ class Ads {
 
 	private async preload(): Promise<void> {
 		if (
+			!this.isSupported() ||
 			!this.initialised ||
 			this.loading ||
 			this.loaded ||
@@ -116,7 +134,7 @@ class Ads {
 			return;
 		}
 
-		if (!this.initialised || this.showing) {
+		if (!this.isSupported() || !this.initialised || this.showing) {
 			return;
 		}
 

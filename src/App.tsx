@@ -55,8 +55,6 @@ export function App() {
 		getSteamId().then(steamId => {
 			console.log('SteamID64:', steamId);
 		});
-
-		void ads.initialise();
 	}, []);
 
 	const finishInteraction = () => {

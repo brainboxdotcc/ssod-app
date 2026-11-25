@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { isTauri } from '@tauri-apps/api/core';
+import { ads } from './ads';
 
 const TOKEN_KEY = 'seven-spells-standalone-token';
 
@@ -23,8 +24,6 @@ export function restoreInstallationToken(token: string): boolean {
 	localStorage.setItem(TOKEN_KEY, value);
 	return true;
 }
-
-
 
 export function connectStandalone(
 	url: string,
@@ -51,6 +50,7 @@ export function connectStandalone(
 		if (stopped || rejected) return;
 		clearTimers();
 		authenticated = false;
+		ads.setEnabled(false);
 		onStatus(attempts ? 'Reconnecting' : 'Connecting');
 
 		let current: WebSocket;
@@ -115,6 +115,7 @@ export function connectStandalone(
 					attempts = 0;
 					if (authTimer !== null) clearTimeout(authTimer);
 					authTimer = null;
+					ads.setEnabled(data.ads_enabled === true);
 					onStatus('Connected');
 				} else if (typeof data.error === 'string') {
 					if (!authenticated) {
@@ -144,6 +145,7 @@ export function connectStandalone(
 			if (current !== socket) return;
 			socket = null;
 			authenticated = false;
+			ads.setEnabled(false);
 			if (authTimer !== null) clearTimeout(authTimer);
 			authTimer = null;
 			if (stopped || rejected) return;
@@ -169,6 +171,7 @@ export function connectStandalone(
 		},
 		close: () => {
 			stopped = true;
+			ads.setEnabled(false);
 			clearTimers();
 			socket?.close();
 			socket = null;
