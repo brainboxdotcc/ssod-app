@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Crown, Image, FlaskConical, Compass, ShieldOff } from 'lucide-react';
+import { Crown, FlaskConical, Compass, ShieldOff } from 'lucide-react';
 import { SelectView } from './SelectView';
 import { BiographyOptions } from './BiographyOptions';
+import { PortraitOptions } from './PortraitOptions';
 import { Capacitor } from '@capacitor/core';
 
 type PremiumOptionsProps = {
@@ -97,13 +98,7 @@ export function PremiumOptions({
 				</form>
 			</div>
 
-			<div className="premium-benefit">
-				<h3><Image size={18} /> Character portrait</h3>
-				<p>Upload a custom image to personalise your character profile.</p>
-				<button className="premium-action" type="button" disabled>
-					Change portrait
-				</button>
-			</div>
+			<PortraitOptions disabled={disabled} />
 
 			<BiographyOptions />
 		</section>

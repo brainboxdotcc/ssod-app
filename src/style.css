@@ -1528,6 +1528,33 @@ h3.discord-heading {
 	color: #9bc99b;
 }
 
+.premium-portrait-preview {
+	display: block;
+	width: 160px;
+	max-width: 100%;
+	height: auto;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	border-radius: 6px;
+	margin: 12px 0;
+}
+
+.premium-portrait-hint {
+	font-size: 0.85rem;
+	opacity: 0.7;
+}
+
+.premium-portrait-error {
+	color: #ef7777;
+	margin-top: 10px;
+	font-size: 0.9rem;
+}
+
+.premium-portrait-success {
+	color: #86c98a;
+	margin-top: 10px;
+	font-size: 0.9rem;
+}
+
 @media (max-width: 650px) {
 	.premium-field > textarea {
 		font-size: 16px;
